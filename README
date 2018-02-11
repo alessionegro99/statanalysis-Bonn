@@ -1,0 +1,21 @@
+*********************************
+*** PYTHON3 PACKAGE FOR BASIC ***
+***** STATISTICAL ANALYSIS  *****
+*********************************
+
+All the scripts (but for concatenate.py) have a __main__ for unit testing that
+can be used as an example of use.
+
+blocksum.py    : to block data when there is autocorrelation
+
+bootstap.py    : bootstrap computation of average values 
+                 (both primary and secondary observables)
+
+concatenate.py : to remove thermalization and concatenate files
+
+jackknife.py   : jackknife computation of average values 
+                 (both primary and secondary observables)
+
+progressbar.py : to display a progress bar
+
+regression.py  : for nonlinear fitting
