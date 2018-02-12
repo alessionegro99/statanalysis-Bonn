@@ -18,6 +18,14 @@ def bootstrap_for_primary(func, vec_in, block, samples):
   and "samples" resamplings.
   """
 
+  if not isinstance(block, int):
+    printf("ERROR: blocksize has to be an integer!")
+    sys.exit(1)
+
+  if block<1:
+    printf("ERROR: blocksize has to be positive!")
+    sys.exit(1)
+
   numblocks=int(len(vec_in)/block)
   end =  block * numblocks
 
@@ -49,6 +57,14 @@ def bootstrap_for_secondary(func2, block, samples, *args):
   with blocksize "block" for blocking
   and "samples" resampling
   """
+
+  if not isinstance(block, int):
+    printf("ERROR: blocksize has to be an integer!")
+    sys.exit(1)
+
+  if block<1:
+    printf("ERROR: blocksize has to be positive!")
+    sys.exit(1)
 
   secondary_samples=np.empty(samples, dtype=np.float)
 

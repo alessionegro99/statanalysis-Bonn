@@ -2,6 +2,7 @@
 
 import blocksum as bs
 import numpy as np
+import sys
 
 __all__ = ["jackknife_for_primary", "jackknife_for_secondary"]
 
@@ -15,6 +16,14 @@ def jackknife_for_primary(func, vec_in, block):
   <func(vec_in)> 
   using blocksize "block" for blocking.
   """
+
+  if not isinstance(block, int):
+    printf("ERROR: blocksize has to be an integer!")
+    sys.exit(1)
+
+  if block<1:
+    printf("ERROR: blocksize has to be positive!")
+    sys.exit(1)
 
   numblocks=int(len(vec_in)/block)
   end =  block * numblocks
@@ -43,6 +52,14 @@ def jackknife_for_secondary(func2, block, *args):
   func2(<func_0(vec_0)>, ..,<func_n(vec_n)>) 
   with blocksize "block" for blocking.
   """
+
+  if not isinstance(block, int):
+    printf("ERROR: blocksize has to be an integer!")
+    sys.exit(1)
+
+  if block<1:
+    printf("ERROR: blocksize has to be positive!")
+    sys.exit(1)
 
   # list of primary jackknife samples
   jack_list=[]
