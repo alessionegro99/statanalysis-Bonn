@@ -2,6 +2,8 @@
 
 import time
 
+__all__ = ["progress_bar"]
+
 #***************************
 #library functions
 

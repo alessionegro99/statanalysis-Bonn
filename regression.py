@@ -2,14 +2,17 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-import statanalysis.progressbar as pb
+import progressbar as pb
 import scipy.optimize as opt
 import scipy.stats as stats
+
+__all__ = ["fit_with_yerr", "fit_with_xyerr"]
+
 
 #***************************
 #library functions
 
-def residuals_yerr(params, x, y, dy, func):
+def _residuals_yerr(params, x, y, dy, func):
    """
    Return the vector of residuals (normalized with the error)
    for func(x, param).
@@ -58,7 +61,7 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
      booty=y+np.random.normal(0, dy, data_length) 
 
      # least square regression
-     ris = opt.leastsq(residuals_yerr, params, ftol=stop_param, args=(x, booty, dy, func))
+     ris = opt.leastsq(_residuals_yerr, params, ftol=stop_param, args=(x, booty, dy, func))
      boot_sample[:,i]=ris[0]
 
      if plot_band==1:
@@ -69,7 +72,7 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
    err=np.std(boot_sample, axis=1, ddof=1)
 
    # auxilliary stuff
-   opt_res=residuals_yerr(ris, x, y, dy, func)
+   opt_res=_residuals_yerr(ris, x, y, dy, func)
    chi2=np.sum(opt_res*opt_res)
    dof=data_length - len(params)
    pvalue=1.0 - stats.chi2.cdf(chi2, dof)
@@ -116,7 +119,7 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
    return ris, err, chi2, dof, pvalue, boot_sample
 
 
-def residuals_xyerr(extended_params, x, dx, y, dy, true_param_length, func):
+def _residuals_xyerr(extended_params, x, dx, y, dy, true_param_length, func):
    """
    Return the vector of residuals (normalized with the error)
    for func(x, param).
@@ -175,7 +178,7 @@ def fit_with_xyerr(x, dx, y, dy, xmin, xmax, func, params, samples, \
      booty=y+np.random.normal(0, dy, data_length) 
 
      # least square regression
-     ris = opt.leastsq(residuals_xyerr, extended_params, ftol=stop_param, args=(bootx, dx, booty, dy, true_param_length, func))
+     ris = opt.leastsq(_residuals_xyerr, extended_params, ftol=stop_param, args=(bootx, dx, booty, dy, true_param_length, func))
      boot_sample[:,i]=ris[0][:true_param_length]
      if plot_band==1:
        boot_band[:,i]=func(x_band, ris[0][:true_param_length])
@@ -185,7 +188,7 @@ def fit_with_xyerr(x, dx, y, dy, xmin, xmax, func, params, samples, \
    err=np.std(boot_sample, axis=1, ddof=1)
 
    # auxilliary stuff
-   opt_res=residuals_yerr(ris, x, y, dy, func)
+   opt_res=_residuals_yerr(ris, x, y, dy, func)
    chi2=np.sum(opt_res*opt_res)
    dof=data_length - true_param_length
    pvalue=1.0 - stats.chi2.cdf(chi2, dof)

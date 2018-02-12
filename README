@@ -1,14 +1,14 @@
 *********************************
 *** PYTHON3 PACKAGE FOR BASIC ***
-***** STATISTICAL ANALYSIS  *****
+*** STATISTICAL DATA ANALYSIS ***
 *********************************
 
-All the scripts (but for concatenate.py) have a __main__ for unit testing that
-can be used as an example of use.
+All the scripts have a __main__ for unit testing or explanations that can be
+used as an example of use.
 
 blocksum.py    : to block data when there is autocorrelation
 
-bootstap.py    : bootstrap computation of average values 
+bootstrap.py   : bootstrap computation of average values 
                  (both primary and secondary observables)
 
 concatenate.py : to remove thermalization and concatenate files
