@@ -23,7 +23,8 @@ def _residuals_yerr(params, x, y, dy, func):
 
 
 def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
-   stop_param=1.0e-15, plot_fit=1, plot_band=1, plot_residuals=1, plot_distribution=1, save_figs=0):
+   stop_param=1.0e-15, plot_fit=1, plot_band=1, plot_residuals=1, \
+   plot_distribution=1, save_figs=0, show_progressbar=1):
    """
    Perform a fit to data on [xmin, xmax] with the function func(x, param),
    using "samples" bootstrap samples to evaluate the errors.
@@ -33,6 +34,7 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
    plot_residuals: if =1 plot residuals after convergence
    plot_distribtion: if =1 plot the bootstrapped distributions of the parameters
    save_figs: if =1 save the figures in png insted of displaying them
+   show_progressbar: if =1 show the progressbar
 
    return the optimal vales of the parameters, their errors, 
    the value of chi^2,the number of dof, the p-value
@@ -56,7 +58,8 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
      boot_band=np.empty((band_size, samples), dtype=np.float)
      
    for i in range(samples): 
-     pb.progress_bar(i, samples)
+     if show_progressbar==1:
+       pb.progress_bar(i, samples)
 
      # bootstrap sample
      booty=y+np.random.normal(0, dy, data_length) 
@@ -147,7 +150,8 @@ def _residuals_xyerr(extended_params, x, dx, y, dy, true_param_length, func):
 
 
 def fit_with_xyerr(x, dx, y, dy, xmin, xmax, func, params, samples, \
-   stop_param=1.0e-15, plot_fit=1, plot_band=1, plot_residuals=1, plot_distribution=1, save_figs=0):
+   stop_param=1.0e-15, plot_fit=1, plot_band=1, plot_residuals=1, \
+   plot_distribution=1, save_figs=0, show_progressbar=1):
    """
    Perform a fit to data on [xmin, xmax] with the function func(x, param),
    using "samples" bootstrap samples to evaluate the errors.
@@ -157,6 +161,7 @@ def fit_with_xyerr(x, dx, y, dy, xmin, xmax, func, params, samples, \
    plot_residuals: if =1 plot residuals after convergence
    plot_distribtion: if =1 plot the bootstrapped distributions of the parameters
    save_figs: if =1 save the figures in png insted of displaying them
+   show_progressbar: if =1 show the progress bar
 
    return the optimal vales of the parameters, their errors, 
    the value of chi^2,the number of dof, the p-value
@@ -184,8 +189,9 @@ def fit_with_xyerr(x, dx, y, dy, xmin, xmax, func, params, samples, \
      x_band=np.linspace(xmin, xmax, band_size)
      boot_band=np.empty((band_size, samples), dtype=np.float)
   
-   for i in range(samples): 
-     pb.progress_bar(i, samples)
+   for i in range(samples):
+     if show_progressbar==1: 
+       pb.progress_bar(i, samples)
 
      # bootstrap sample
      bootx=x+np.random.normal(0, dx, data_length) 

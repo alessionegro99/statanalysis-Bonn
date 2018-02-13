@@ -47,7 +47,7 @@ def bootstrap_for_primary(func, vec_in, block, samples):
   return ris, err
 
 
-def bootstrap_for_secondary(func2, block, samples, *args):
+def bootstrap_for_secondary(func2, block, samples, show_progressbar, *args):
   """Bootstrap for secondary observables.
   
   Every element of *arg is a list of two element of the form
@@ -56,6 +56,8 @@ def bootstrap_for_secondary(func2, block, samples, *args):
   func2(<func_0(vec_0)>, ..,<func_n(vec_n)>) 
   with blocksize "block" for blocking
   and "samples" resampling
+
+  show_progressbar: if =1 show the progressbar
   """
 
   if not isinstance(block, int):
@@ -69,7 +71,8 @@ def bootstrap_for_secondary(func2, block, samples, *args):
   secondary_samples=np.empty(samples, dtype=np.float)
 
   for sample in range(samples):
-    pb.progress_bar(sample, samples)
+    if show_progressbar==1:
+      pb.progress_bar(sample, samples)
 
     primary_samples=[]
 
@@ -134,7 +137,7 @@ if __name__=="__main__":
 
   list0=[square, test_noauto]
   list1=[id, test_noauto]
-  ris, err = bootstrap_for_secondary(susc, 1, samples, list0, list1)
+  ris, err = bootstrap_for_secondary(susc, 1, samples, 1, list0, list1)
 
   print("average = %f" % ris)
   print("    err = %f" % err)
@@ -168,7 +171,7 @@ if __name__=="__main__":
 
   list0=[square, test_auto]
   list1=[id, test_auto]
-  ris, err = bootstrap_for_secondary(susc, auto, samples, list0, list1)
+  ris, err = bootstrap_for_secondary(susc, auto, samples, 1, list0, list1)
 
   print("average = %f" % ris)
   print("    err = %f" % err)
