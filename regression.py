@@ -23,7 +23,7 @@ def _residuals_yerr(params, x, y, dy, func):
 
 
 def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
-   stop_param=1.0e-15, plot_fit=1, plot_band=1, plot_residuals=1, plot_distribution=1):
+   stop_param=1.0e-15, plot_fit=1, plot_band=1, plot_residuals=1, plot_distribution=1, save_figs=0):
    """
    Perform a fit to data on [xmin, xmax] with the function func(x, param),
    using "samples" bootstrap samples to evaluate the errors.
@@ -32,6 +32,7 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
    plot_fit: if =1 plot the optimal fit together with the data
    plot_residuals: if =1 plot residuals after convergence
    plot_distribtion: if =1 plot the bootstrapped distributions of the parameters
+   save_figs: if =1 save the figures in png insted of displaying them
 
    return the optimal vales of the parameters, their errors, 
    the value of chi^2,the number of dof, the p-value
@@ -77,6 +78,7 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
    dof=data_length - len(params)
    pvalue=1.0 - stats.chi2.cdf(chi2, dof)
 
+
    if plot_fit==1:
      x_aux=np.linspace(xmin, xmax, 1000)
      y_aux=func(x_aux, ris)
@@ -92,7 +94,10 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
        plt.plot(x_band, band_mean + band_std,'g-')
        plt.plot(x_band, band_mean - band_std,'g-')
 
-     plt.show()
+     if save_figs==1:
+       plt.savefig('fit.png')
+     else:
+       plt.show()
 
    if plot_residuals==1:
      x_aux=np.linspace(xmin, xmax, 1000)
@@ -106,7 +111,11 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
      plt.plot(x_aux, 0*y_aux, 'r-')
      plt.plot(x_aux, y_aux, 'r--')
      plt.plot(x_aux, 2*y_aux, 'g:')
-     plt.show()
+     
+     if save_figs==1:
+       plt.savefig('residuals.png')
+     else:
+       plt.show()
 
    if plot_distribution==1:
      for i in range(len(params)):
@@ -114,7 +123,11 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
        plt.xlabel('param[%d] values' % i)
        plt.ylabel('distribution histogram')
        plt.hist(boot_sample[i], bins='auto')
-       plt.show()
+       
+       if save_figs==1:
+         plt.savefig('param'+str(i)+'.png')
+       else:
+         plt.show()
 
    return ris, err, chi2, dof, pvalue, boot_sample
 
@@ -134,7 +147,7 @@ def _residuals_xyerr(extended_params, x, dx, y, dy, true_param_length, func):
 
 
 def fit_with_xyerr(x, dx, y, dy, xmin, xmax, func, params, samples, \
-   stop_param=1.0e-15, plot_fit=1, plot_band=1, plot_residuals=1, plot_distribution=1):
+   stop_param=1.0e-15, plot_fit=1, plot_band=1, plot_residuals=1, plot_distribution=1, save_figs=0):
    """
    Perform a fit to data on [xmin, xmax] with the function func(x, param),
    using "samples" bootstrap samples to evaluate the errors.
@@ -143,6 +156,7 @@ def fit_with_xyerr(x, dx, y, dy, xmin, xmax, func, params, samples, \
    plot_fit: if =1 plot the optimal fit together with the data
    plot_residuals: if =1 plot residuals after convergence
    plot_distribtion: if =1 plot the bootstrapped distributions of the parameters
+   save_figs: if =1 save the figures in png insted of displaying them
 
    return the optimal vales of the parameters, their errors, 
    the value of chi^2,the number of dof, the p-value
@@ -208,7 +222,10 @@ def fit_with_xyerr(x, dx, y, dy, xmin, xmax, func, params, samples, \
        plt.plot(x_band, band_mean + band_std,'g-')
        plt.plot(x_band, band_mean - band_std,'g-')
 
-     plt.show()
+     if save_figs==1:
+       plt.savefig('fit.png')
+     else:
+       plt.show()
 
    if plot_residuals==1:
      x_aux=np.linspace(xmin, xmax, 1000)
@@ -222,7 +239,11 @@ def fit_with_xyerr(x, dx, y, dy, xmin, xmax, func, params, samples, \
      plt.plot(x_aux, 0*y_aux, 'r-')
      plt.plot(x_aux, y_aux, 'r--')
      plt.plot(x_aux, 2*y_aux, 'g:')
-     plt.show()
+
+     if save_figs==1:
+       plt.savefig('residuals.png')
+     else:
+       plt.show()
 
    if plot_distribution==1:
      for i in range(0, len(params)):
@@ -230,7 +251,11 @@ def fit_with_xyerr(x, dx, y, dy, xmin, xmax, func, params, samples, \
        plt.xlabel('param[%d] values' % i)
        plt.ylabel('distribution histogram')
        plt.hist(boot_sample[i], bins='auto')
-       plt.show()
+
+       if save_figs==1:
+         plt.savefig('param'+str(i)+'.png')
+       else:
+         plt.show()
 
    return ris, err, chi2, dof, pvalue, boot_sample
 
