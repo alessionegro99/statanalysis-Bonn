@@ -31,6 +31,7 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
 
    stop_param: stopping parameter for the least square regression
    plot_fit: if =1 plot the optimal fit together with the data
+   plot_band: if =1 plot the 1std band together with data
    plot_residuals: if =1 plot residuals after convergence
    plot_distribtion: if =1 plot the bootstrapped distributions of the parameters
    save_figs: if =1 save the figures in png insted of displaying them
@@ -158,6 +159,7 @@ def fit_with_xyerr(x, dx, y, dy, xmin, xmax, func, params, samples, \
 
    stop_param: stopping parameter for the least square regression
    plot_fit: if =1 plot the optimal fit together with the data
+   plot_band: if =1 plot the 1std band together with data
    plot_residuals: if =1 plot residuals after convergence
    plot_distribtion: if =1 plot the bootstrapped distributions of the parameters
    save_figs: if =1 save the figures in png insted of displaying them
