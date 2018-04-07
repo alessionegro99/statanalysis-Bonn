@@ -35,7 +35,7 @@ def concatenate(indir, therm, use_line0_as_header=1):
 
     outname=os.path.basename(element)+".dat"
     with open(outname, 'a') as outf:
-      list_to_merge=glob.glob("%s*" % element )
+      list_to_merge=glob.glob("%s_*" % element )
 
       if use_line0_as_header==1:
         # for the first occurrence print also the first line
