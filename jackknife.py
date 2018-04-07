@@ -18,11 +18,11 @@ def jackknife_for_primary(func, vec_in, block):
   """
 
   if not isinstance(block, int):
-    printf("ERROR: blocksize has to be an integer!")
+    print("ERROR: blocksize has to be an integer!")
     sys.exit(1)
 
   if block<1:
-    printf("ERROR: blocksize has to be positive!")
+    print("ERROR: blocksize has to be positive!")
     sys.exit(1)
 
   numblocks=int(len(vec_in)/block)
@@ -54,11 +54,11 @@ def jackknife_for_secondary(func2, block, *args):
   """
 
   if not isinstance(block, int):
-    printf("ERROR: blocksize has to be an integer!")
+    print("ERROR: blocksize has to be an integer!")
     sys.exit(1)
 
   if block<1:
-    printf("ERROR: blocksize has to be positive!")
+    print("ERROR: blocksize has to be positive!")
     sys.exit(1)
 
   # list of primary jackknife samples
