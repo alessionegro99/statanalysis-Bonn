@@ -298,7 +298,7 @@ if __name__=="__main__":
   print("Case with errors only on y")
   print()
 
-  ris, err, chi2, dof, pvalue, boot_sample = fit_with_yerr(x, y, dy, 1, 10, parabfit, fitparams, numsamples, 1.0e-15)
+  ris, err, chi2, dof, pvalue, boot_sample = fit_with_yerr(x, y, dy, 1, 10, parabfit, fitparams, numsamples)
 
   print("  chi^2/dof = {:3.3f}/{:d} = {:3.3f}".format(chi2, dof, chi2/dof))
   print("  p-value = %f" % pvalue)
@@ -312,7 +312,7 @@ if __name__=="__main__":
 
   dx=2.0*np.ones(length)/(length)
 
-  ris, err, chi2, dof, pvalue, boot_sample = fit_with_xyerr(x, dx, y, dy, 1, 10, parabfit, fitparams, numsamples, 1.0e-15)
+  ris, err, chi2, dof, pvalue, boot_sample = fit_with_xyerr(x, dx, y, dy, 1, 10, parabfit, fitparams, numsamples)
 
   print("  chi^2/dof = {:3.3f}/{:d} = {:3.3f}".format(chi2, dof, chi2/dof))
   print("  p-value = %f" % pvalue)
