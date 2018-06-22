@@ -19,3 +19,27 @@ jackknife.py   : jackknife computation of average values
 progressbar.py : to display a progress bar
 
 regression.py  : for nonlinear fitting
+
+*********************************
+
+If the folder "statanalysis" is saved in the working area one can use the
+following lines to add it to the pythonpath:
+
+import sys
+import os
+
+try:
+  with open("statanalysis/jackknife.py") as f: 
+    pass
+except:
+  print("Get the package 'statanalysis' from")
+  print("https://github.com/claudio-bonati/statanalysis")
+  print("and put it in this directory.")
+  print()
+  print("If you have 'git' installed you can use")
+  print("git clone https://github.com/claudio-bonati/statanalysis")
+  print()
+  sys.exit(1)
+
+sys.path.append(os.getcwd()+"/statanalysis")
+
