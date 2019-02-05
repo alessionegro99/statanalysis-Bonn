@@ -110,7 +110,7 @@ if __name__=="__main__":
   def susc(x):
     return x[0]-x[1]*x[1]
 
-  size=1000
+  size=5000
   samples=200
 
   # gaussian independent data 
@@ -147,13 +147,10 @@ if __name__=="__main__":
     
   auto=100
 
-  test_noauto_raw=np.reshape(test_noauto, (1,-1))
-
-  l=[]
-  for i in range(0, auto):
-    l.append(test_noauto_raw)
-  tmp=np.concatenate(tuple(l)).transpose()
-  test_auto=tmp.flatten()
+  test_auto=np.empty(0, dtype=float)
+  for element in test_noauto:
+    tmp=element*np.ones(auto, dtype=float)
+    test_auto=np.concatenate((test_auto, tmp))
 
   # test for primary
   print("Test for primary observables with autocorrelation")
