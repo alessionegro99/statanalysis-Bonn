@@ -4,7 +4,7 @@ import blocksum as bs
 import numpy as np
 import progressbar as pb
 
-__all__ = ["bootstrap_for_primary", "bootstrap_for_secondary"]
+__all__ = ["bootstrap_for_primary"]
 
 #***************************
 #library functions
@@ -43,50 +43,6 @@ def bootstrap_for_primary(func, vec_in, block, samples):
 
   ris=np.mean(risboot)
   err=np.std(risboot, ddof=1)
- 
-  return ris, err
-
-
-def bootstrap_for_secondary(func2, block, samples, show_progressbar, *args):
-  """Bootstrap for secondary observables.
-  
-  Every element of *arg is a list of two element of the form
-  args[i]=[func_i, vec_i]
-  and the final result is 
-  func2(<func_0(vec_0)>, ..,<func_n(vec_n)>) 
-  with blocksize "block" for blocking
-  and "samples" resampling
-
-  show_progressbar: if =1 show the progressbar
-  """
-
-  if not isinstance(block, int):
-    print("ERROR: blocksize has to be an integer!")
-    sys.exit(1)
-
-  if block<1:
-    print("ERROR: blocksize has to be positive!")
-    sys.exit(1)
-
-  secondary_samples=np.empty(samples, dtype=np.float)
-
-  for sample in range(samples):
-    if show_progressbar==1:
-      pb.progress_bar(sample, samples)
-
-    primary_samples=[]
-
-    for arg in args:
-      func_l, vec_l = arg
-
-      tmp, tmperr=bootstrap_for_primary(func_l, vec_l, block, samples)
-      primary_samples.append(tmp)
-
-    aux=func2(primary_samples)
-    secondary_samples[sample]=aux
-
-  ris=np.mean(secondary_samples)
-  err=np.std(secondary_samples, ddof=1)
  
   return ris, err
 
@@ -131,18 +87,6 @@ if __name__=="__main__":
   print()
 
 
-  # test for secondary
-  print("Test for secondary observables without autocorrelation")
-  print("result must be compatible with %f" % (sigma*sigma))
-
-  list0=[square, test_noauto]
-  list1=[id, test_noauto]
-  ris, err = bootstrap_for_secondary(susc, 1, samples, 1, list0, list1)
-
-  print("average = %f" % ris)
-  print("    err = %f" % err)
-  print()
-
   # WITH AUTOCORRELATION
     
   auto=100
@@ -161,17 +105,3 @@ if __name__=="__main__":
   print("average = %f" % ris)
   print("    err = %f" % err)
   print()
-
-  # test for secondary
-  print("Test for secondary observables with autocorrelation")
-  print("result must be compatible with %f" % (sigma*sigma))
-
-  list0=[square, test_auto]
-  list1=[id, test_auto]
-  ris, err = bootstrap_for_secondary(susc, auto, samples, 1, list0, list1)
-
-  print("average = %f" % ris)
-  print("    err = %f" % err)
-  print()
-  print("**********************")
-
