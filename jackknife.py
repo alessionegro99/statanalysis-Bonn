@@ -119,7 +119,6 @@ if __name__=="__main__":
   sigma=0.2
   test_noauto=np.random.normal(mu, sigma, size)
 
-  # NO AUTOCORRELATION
 
   # test for primary
   print("Test for primary observables without autocorrelation")
@@ -144,35 +143,5 @@ if __name__=="__main__":
   print("    err = %f" % err)
   print()
 
-  # WITH AUTOCORRELATION
-
-  auto=100
-
-  test_auto=np.empty(0, dtype=float)
-  for element in test_noauto:
-    tmp=element*np.ones(auto, dtype=float)
-    test_auto=np.concatenate((test_auto, tmp))
-
-  # test for primary
-  print("Test for primary observables with autocorrelation")
-  print("result must be compatible with %f" % mu)
-
-  ris, err = jackknife_for_primary(id, test_auto, auto)
-
-  print("average = %f" % ris)
-  print("    err = %f" % err)
-  print()
-
-  # test for secondary
-  print("Test for secondary observables with autocorrelation")
-  print("result must be compatible with %f" % (sigma*sigma))
-
-  list0=[square, test_auto]
-  list1=[id, test_auto]
-  ris, err = jackknife_for_secondary(susc, auto, list0, list1)
-
-  print("average = %f" % ris)
-  print("    err = %f" % err)
-  print()
   print("**********************")
 
