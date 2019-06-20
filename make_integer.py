@@ -5,8 +5,6 @@ import scipy.optimize as opt
 
 __all__ = ["make_integer"]
 
-#***************************
-#library functions
 
 def _residualsfrominteger(alpha, vec_in):
   """

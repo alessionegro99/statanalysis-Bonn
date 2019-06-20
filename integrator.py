@@ -8,9 +8,6 @@ import scipy.interpolate as interp
 __all__ = ["integrator_yerr"]
 
 
-#***************************
-#library functions
-
 def integrator_yerr(x, y, dy, xmin, xmax, samples, spline_order, \
    plot_spline=1, plot_band=1, plot_distribution=1, save_figs=0, show_progressbar=1):
    """

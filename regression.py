@@ -9,9 +9,6 @@ import scipy.stats as stats
 __all__ = ["fit_with_yerr", "fit_with_xyerr"]
 
 
-#***************************
-#library functions
-
 def _residuals_yerr(params, x, y, dy, func):
    """
    Return the vector of residuals (normalized with the error)

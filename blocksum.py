@@ -2,8 +2,8 @@
 
 import numpy as np
 
-#***************************
-#library functions
+__all__ = ["blocksum"]
+
 
 def blocksum(vec_in, block):
   """Block sums of a vector.

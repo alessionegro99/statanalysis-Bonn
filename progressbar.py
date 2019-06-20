@@ -4,8 +4,6 @@ import time
 
 __all__ = ["progress_bar"]
 
-#***************************
-#library functions
 
 def progress_bar(iteration, total, barLength=50, disappear=0):
     """

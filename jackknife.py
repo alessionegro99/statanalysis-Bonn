@@ -6,8 +6,6 @@ import sys
 
 __all__ = ["jackknife_for_primary", "jackknife_for_secondary"]
 
-#***************************
-#library functions
 
 def jackknife_for_primary(func, vec_in, block):
   """Jacknife for primary observables.

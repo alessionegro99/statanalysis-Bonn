@@ -6,8 +6,6 @@ import sys
 
 __all__=["concatenate"]
 
-#***************************
-#library functions
 
 def concatenate(indir, therm, use_line0_as_header=1):
   """
