@@ -230,11 +230,13 @@ def jack_for_secondary(func2, param, energyfunc, lzeta, vecfunc, stuff):
   return ris_no_bias, err
 
 
-def multihisto_for_secondary(param_min, param_max, num_steps, func2, vecfunc, stuff):
+def multihisto_for_secondary(param_min, param_max, num_steps, energyfunc, func2, vecfunc, stuff):
   """
   Compute the secondary function func2 using multihistogram reweighting
   techniques for num_steps values of the control parameter, going from param_min
   to param_max.
+
+  energyfunc is the function to compute the 'energy'
 
   vecfunc=[func1a, func1b, func1c..... ]
   where func1a, func1b and so on are the functions of the
@@ -261,7 +263,7 @@ def multihisto_for_secondary(param_min, param_max, num_steps, func2, vecfunc, st
 
   for i in range(num_steps+1):
     param=param_min+i*(param_max-param_min)/num_steps
-    ris, err = jack_for_secondary(func2, param, lzeta, stuff, vecfunc) 
+    ris, err = jack_for_secondary(func2, param, energyfunc, lzeta, vecfunc, stuff) 
     print("{:.8f} {:.12g} {:.12g}".format(param, ris, err) )
 
 
@@ -298,9 +300,11 @@ if __name__=="__main__":
   #def susc(v):
   #  return v[0]-v[1]*v[1]
 
-  #stuff=[[2.26, data226, 20], [2.27, data227, 20], [2.28, data228, 100]]
+  #stuff=[[2.26, data226, 20], [2.27, data227, 20], [2.28, data228, 20]]
 
-  #multihisto_for_secondary(2.26, 2.28, 20, susc, [squareplaq, plaq], stuff)
+  #multihisto_for_primary(2.26, 2.28, 20, energy, plaq, stuff)
+
+  #multihisto_for_secondary(2.26, 2.28, 20, energy, susc, [squareplaq, plaq], stuff)
 
   print("**********************")
 
