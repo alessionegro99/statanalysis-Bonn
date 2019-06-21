@@ -2,11 +2,13 @@
 
 import numpy as np
 import scipy.misc as spm
+import scipy.optimize as spo
+import sys
 
-__all__ = ["multihisto_for_primary", "multihisto_for_secondary"]
+__all__ = ["computelzeta", "jack_for_primary", "multihisto_for_primary", "jack_for_secondary", "multihisto_for_secondary"]
 
 
-def newlzeta(energyfunc, lzeta, stuff, speedup):
+def _newlzeta(energyfunc, lzeta, stuff, speedup):
   """
   The values of the partition functions to be computed are fixed points of this function
   
@@ -40,6 +42,48 @@ def newlzeta(energyfunc, lzeta, stuff, speedup):
   return np.array(lzetanew)
 
 
+def _tominimize(energyfunc, lzetacut, stuff):
+  """
+  The values of the partition functions are the zeros of this function
+  
+  energyfunc is the function to compute the 'energy'
+
+  lzetacut are the last len(stuff)-1 values of the log of the partition function
+  (the first entry is fixed to 1 as normalization)
+
+  stuff is a list whose elements are of the form
+  stuff[i]=[param_i, vecdata_i, blockdata_i]
+  with vecdata=[column0, column1, .... ]
+  """
+
+  lzeta=np.concatenate((np.array([1]), lzetacut), axis=0) 
+
+  betas=np.array([element[0] for element in stuff])
+  stat=np.array([len(np.transpose(element[1])) for element in stuff])
+
+  lzetanew=[]
+
+  for betavalue in betas:
+    aux=[]
+    for element in stuff:
+      end=element[2]*int(len(np.transpose(element[1]))/element[2])
+  
+      energy=energyfunc(element[1][:end])
+
+      tmp = np.array([ (-1)*spm.logsumexp(  np.sum(np.stack((np.log(stat), -lzeta, (betavalue-betas)*value), axis=1), axis=1) ) for value in energy[:end] ])
+
+      aux.append(spm.logsumexp(tmp))
+
+    lzetanew.append(spm.logsumexp(np.array(aux)))
+
+
+  check=np.linalg.norm(np.array(lzetanew)[1:]-lzetacut)
+  print("computing lzeta by minimization: {:12.8e}".format(check), end='\r')
+
+  return np.array(lzetanew)[1:]-lzetacut
+
+
+
 def computelzeta(energyfunc, stuff, *args):
   """
   Compute the log of the partition functions in a self-consistent way
@@ -59,37 +103,47 @@ def computelzeta(energyfunc, stuff, *args):
     lzetaold=np.copy(args[0])
     speedup=1
 
-  lzetanew=newlzeta(energyfunc, lzetaold, stuff, speedup)
+  lzetanew=_newlzeta(energyfunc, lzetaold, stuff, speedup)
   check=np.linalg.norm(lzetanew-lzetaold)
   lzetanew-=(lzetanew[0]-1)
   check=np.linalg.norm(lzetanew-lzetaold)
 
   while speedup>1:
     lzetaold=np.copy(lzetanew)
-    lzetanew=newlzeta(energyfunc, lzetaold, stuff, speedup)
+    lzetanew=_newlzeta(energyfunc, lzetaold, stuff, speedup)
     lzetanew-=(lzetanew[0]-1)
     check=np.linalg.norm(lzetanew-lzetaold)
 
     while check>1e-2:
       lzetaold=np.copy(lzetanew)
-      lzetanew=newlzeta(energyfunc, lzetaold, stuff, speedup)
+      lzetanew=_newlzeta(energyfunc, lzetaold, stuff, speedup)
       lzetanew-=(lzetanew[0]-1)
       check=np.linalg.norm(lzetanew-lzetaold)
 
-      print("computing lzeta: {:12.8f} ({:8d})".format(check, speedup), end='\r')
+      print("computing lzeta by iteration: {:12.8f} ({:8d})".format(check, speedup), end='\r')
 
     speedup=int(speedup/2)
     if speedup<1:
       speedup=1
+  print('')
+ 
+  lzetacut=lzetanew[1:]
+  ris=spo.root(lambda x: _tominimize(energyfunc, x, stuff), lzetacut)
+  print('')
 
-  while check>1e-4:
-    lzetaold=np.copy(lzetanew)
-    lzetanew=newlzeta(energyfunc, lzetaold, stuff, speedup)
-    lzetanew-=(lzetanew[0]-1)
-    check=np.linalg.norm(lzetanew-lzetaold)
-    print("computing lzeta: {:12.8f} ({:8d})".format(check, speedup), end='\r' )
+  if ris.success != True:
+    print("Minimization failed!")
+    sys.exit(1)
 
-  return lzetanew
+  lzeta=np.concatenate((np.array([1]), ris.x), axis=0)
+
+  print("log(zeta) = ", end=' ')
+  for value in lzeta:
+    print(value, end=' ')
+  print("")
+
+  return lzeta
+
 
 
 def jack_for_primary(func, param, energyfunc, lzeta, stuff):
@@ -159,9 +213,6 @@ def multihisto_for_primary(param_min, param_max, num_steps, energyfunc, func, st
       sys.exit(1)
 
   lzeta=computelzeta(energyfunc, stuff);
-
-  print("log(zeta) = ", lzeta)
-  print("")
 
   for i in range(num_steps+1):
     param=param_min+i*(param_max-param_min)/num_steps
@@ -257,9 +308,6 @@ def multihisto_for_secondary(param_min, param_max, num_steps, energyfunc, func2,
       sys.exit(1)
 
   lzeta=computelzeta(energyfunc, stuff);
-
-  print("log(zeta) = ", lzeta)
-  print("")
 
   for i in range(num_steps+1):
     param=param_min+i*(param_max-param_min)/num_steps
