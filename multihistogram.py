@@ -56,6 +56,10 @@ def _tominimize(energyfunc, lzetacut, stuff):
   with vecdata=[column0, column1, .... ]
   """
 
+  if 'cnt' not in _tominimize.__dict__:
+    _tominimize.cnt = 0
+  _tominimize.cnt += 1
+
   lzeta=np.concatenate((np.array([1]), lzetacut), axis=0) 
 
   betas=np.array([element[0] for element in stuff])
@@ -78,7 +82,7 @@ def _tominimize(energyfunc, lzetacut, stuff):
 
 
   check=np.linalg.norm(np.array(lzetanew)[1:]-lzetacut)
-  print("computing lzeta by minimization: {:12.8e}".format(check), end='\r')
+  print("computing lzeta by minimization: {:12.8e} (iteration : {:8d})".format(check, _tominimize.cnt), end='\r')
 
   return np.array(lzetanew)[1:]-lzetacut
 
@@ -108,6 +112,8 @@ def computelzeta(energyfunc, stuff, *args):
   lzetanew-=(lzetanew[0]-1)
   check=np.linalg.norm(lzetanew-lzetaold)
 
+  iteration=0
+
   while speedup>1:
     lzetaold=np.copy(lzetanew)
     lzetanew=_newlzeta(energyfunc, lzetaold, stuff, speedup)
@@ -119,8 +125,9 @@ def computelzeta(energyfunc, stuff, *args):
       lzetanew=_newlzeta(energyfunc, lzetaold, stuff, speedup)
       lzetanew-=(lzetanew[0]-1)
       check=np.linalg.norm(lzetanew-lzetaold)
+      iteration+=1
 
-      print("computing lzeta by iteration: {:12.8f} ({:8d})".format(check, speedup), end='\r')
+      print("computing lzeta by iteration: {:12.8f} (speedup : {:8d}, iteration : {:8d})".format(check, speedup, iteration), end='\r')
 
     speedup=int(speedup/2)
     if speedup<1:
@@ -133,6 +140,9 @@ def computelzeta(energyfunc, stuff, *args):
 
   if ris.success != True:
     print("Minimization failed!")
+    print("")
+    print(ris)
+    print("")
     sys.exit(1)
 
   lzeta=np.concatenate((np.array([1]), ris.x), axis=0)
