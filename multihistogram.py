@@ -102,15 +102,10 @@ def computelzeta(energyfunc, stuff, *args):
   speedup=100
 
   if len(args)==0:
-    lzetaold=np.ones(len(stuff))
+    lzetanew=np.ones(len(stuff))
   else:
-    lzetaold=np.copy(args[0])
+    lzetanew=np.copy(args[0])
     speedup=1
-
-  lzetanew=_newlzeta(energyfunc, lzetaold, stuff, speedup)
-  check=np.linalg.norm(lzetanew-lzetaold)
-  lzetanew-=(lzetanew[0]-1)
-  check=np.linalg.norm(lzetanew-lzetaold)
 
   iteration=0
 
