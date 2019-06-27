@@ -20,7 +20,7 @@ def _newlzeta(energyfunc, lzeta, stuff, speedup):
 
   speedup >=1 is an integer
   """
- 
+
   betas=np.array([element[0] for element in stuff])
   stat=np.array([len(np.transpose(element[1])) for element in stuff])
 
@@ -83,6 +83,7 @@ def _tominimize(energyfunc, lzetacut, stuff):
 
   check=np.linalg.norm(np.array(lzetanew)[1:]-lzetacut)
   print("computing lzeta by minimization: {:12.8e} (iteration : {:8d})".format(check, _tominimize.cnt), end='\r')
+  sys.stdout.flush()
 
   return np.array(lzetanew)[1:]-lzetacut
 
@@ -123,6 +124,7 @@ def computelzeta(energyfunc, stuff, *args):
       iteration+=1
 
       print("computing lzeta by iteration: {:12.8f} (speedup : {:8d}, iteration : {:8d})".format(check, speedup, iteration), end='\r')
+      sys.stdout.flush()
 
     speedup=int(speedup/2)
     if speedup<1:
