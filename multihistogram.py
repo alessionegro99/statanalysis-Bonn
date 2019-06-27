@@ -115,14 +115,18 @@ def computelzeta(energyfunc, stuff, *args):
     lzetanew=_newlzeta(energyfunc, lzetaold, stuff, speedup)
     lzetanew-=(lzetanew[0]-1)
     check=np.linalg.norm(lzetanew-lzetaold)
+ 
+    if check>1e-2:
+      while check>1e-2:
+        lzetaold=np.copy(lzetanew)
+        lzetanew=_newlzeta(energyfunc, lzetaold, stuff, speedup)
+        lzetanew-=(lzetanew[0]-1)
+        check=np.linalg.norm(lzetanew-lzetaold)
+        iteration+=1
 
-    while check>1e-2:
-      lzetaold=np.copy(lzetanew)
-      lzetanew=_newlzeta(energyfunc, lzetaold, stuff, speedup)
-      lzetanew-=(lzetanew[0]-1)
-      check=np.linalg.norm(lzetanew-lzetaold)
-      iteration+=1
-
+        print("computing lzeta by iteration: {:12.8f} (speedup : {:8d}, iteration : {:8d})".format(check, speedup, iteration), end='\r')
+        sys.stdout.flush()
+    else:
       print("computing lzeta by iteration: {:12.8f} (speedup : {:8d}, iteration : {:8d})".format(check, speedup, iteration), end='\r')
       sys.stdout.flush()
 
