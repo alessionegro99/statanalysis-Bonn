@@ -129,6 +129,7 @@ def computelzeta(energyfunc, stuff, *args):
     else:
       print("computing lzeta by iteration: {:12.8f} (speedup : {:8d}, iteration : {:8d})".format(check, speedup, iteration), end='\r')
       sys.stdout.flush()
+      iteration+=1
 
     speedup=int(speedup/2)
     if speedup<1:
