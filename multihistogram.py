@@ -127,18 +127,30 @@ def computelzeta(energyfunc, stuff, *args):
       speedup=1
   print('')
 
-  lzetacut=lzetanew[1:]
-  ris=spo.root(lambda x: _tominimize(energyfunc, x, stuff), lzetacut)
+  # using iteration
+  while check>1.0e-6:
+    lzetaold=np.copy(lzetanew)
+    lzetanew=_newlzeta(energyfunc, lzetaold, stuff, 1)
+    lzetanew-=(lzetanew[0]-1)
+    check=np.linalg.norm(lzetanew-lzetaold)
+    iteration+=1
+   
+    print("computing lzeta by iteration: {:12.8f} (speedup : {:8d}, iteration : {:8d})".format(check, speedup, iteration), end='\r')
+    sys.stdout.flush()
   print('')
+  lzeta=np.copy(lzetanew)
 
-  if ris.success != True:
-    print("Minimization failed!")
-    print("")
-    print(ris)
-    print("")
-    sys.exit(1)
-
-  lzeta=np.concatenate((np.array([1]), ris.x), axis=0)
+  ##using minimization
+  #lzetacut=lzetanew[1:]
+  #ris=spo.root(lambda x: _tominimize(energyfunc, x, stuff), lzetacut)
+  #print('')
+  #if ris.success != True:
+  #  print("Minimization failed!")
+  #  print("")
+  #  print(ris)
+  #  print("")
+  #  sys.exit(1)
+  #lzeta=np.concatenate((np.array([1]), ris.x), axis=0)
 
   print("log(zeta) = ", end=' ')
   for value in lzeta:
