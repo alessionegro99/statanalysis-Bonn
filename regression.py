@@ -2,9 +2,9 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-import progressbar as pb
 import scipy.optimize as opt
 import scipy.stats as stats
+import statanalysis.progressbar as pb
 
 __all__ = ["fit_with_yerr", "fit_with_xyerr"]
 

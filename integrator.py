@@ -2,8 +2,8 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-import progressbar as pb
 import scipy.interpolate as interp
+import statanalysis.progressbar as pb
 
 __all__ = ["integrator_yerr"]
 
