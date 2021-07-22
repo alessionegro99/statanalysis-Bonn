@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import statanalysis.blocksum as bs
-import statanalysis.progressbar as pb
+import blocksum as bs
+import progressbar as pb
 
 __all__ = ["bootstrap_for_primary", "bootstrap_for_secondary"]
 

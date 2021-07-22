@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import statanalysis.blocksum as bs
+import blocksum as bs
 import sys
 
 __all__ = ["jackknife_for_primary", "jackknife_for_secondary"]
