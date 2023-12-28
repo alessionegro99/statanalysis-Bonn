@@ -48,9 +48,6 @@ def integrator_yerr(x, y, dy, xmin, xmax, samples, spline_order, \
      # bootstrap sample
      booty=y+np.random.normal(0, dy, data_length) 
 
-     ris=1
-     err=1
-
      # spline interpolation
      s = interp.UnivariateSpline(x, booty, k=spline_order, s=0)
 
@@ -121,7 +118,7 @@ if __name__=="__main__":
   print("The result should be comatible with 666")
   print()
 
-  ris, err, boot_sample = integrator_yerr(x, y, dy, 1, 10, 10000, 2)
+  ris, err, boot_sample = integrator_yerr(x, y, dy, 1, 10, numsamples, 2)
 
   print("  ris = {: f} +- {:f}".format(ris, err) ) 
   print("**********************")
