@@ -6,7 +6,7 @@ import numpy as np
 import blocksum as bs
 import progressbar as pb
 
-__all__ = ["bootstrap_for_primary", "bootstrap_for_secondary"]
+__all__ = ["bootstrap_for_primary", "bootstrap_for_secondary", "blocksize_analysis_primary"]
 
 #***************************
 #library functions
@@ -32,7 +32,7 @@ def bootstrap_for_primary(func, vec_in, block, samples):
   end =  block * numblocks
 
   # cut vec_in to have a number of columns multiple of "block" and apply "func" 
-  data=func(vec_in[:end])  
+  data=func(vec_in[:end])   
 
   block_sum_data=bs.blocksum(data, block)/np.float64(block)
 
@@ -49,7 +49,7 @@ def bootstrap_for_primary(func, vec_in, block, samples):
   return ris, err
 
 
-def bootstrap_for_secondary(func2, block, samples, show_progressbar, *args):
+def bootstrap_for_secondary(func2, block, samples, show_progressbar, *blocksize):
   """Bootstrap for secondary observables.
   
   Every element of *arg is a list of two element of the form
@@ -105,10 +105,42 @@ def bootstrap_for_secondary(func2, block, samples, show_progressbar, *args):
 
   return ris, err
 
+def blocksize_analysis_primary(vec_in, samples, *blocksize):      
+  """Blocksize analysis for primary observables.
+  
+  Given a numpy vector "vec_in", 
+  plot the standard deviation on the mean
+  of "vec_in" as a function of the blocksize.
+  Starting from "blocksize_min" to
+  "blocksize_max" with steps of size "blocksize_step".
+  Uses "samples" bootstrap samples to compute the error.
+  "blocksize" is a vector 
+  [blocksize_min,blocksize_max,blocksize_step]
+  """
+  
+  def id(x):
+    return x
+  
+  err = []
+  d_err = []
+  
+  for block in range(blocksize[0], blocksize[1], blocksize[2]):
+    numblocks=int(len(vec_in)/block)
+    end =  block * numblocks
 
+    data=vec_in[:end]
 
-
-
+    block_sum_data=bs.blocksum(data, block)/np.float64(block)
+    
+    err.append(np.mean(block_sum_data))
+    
+    foo, std = bootstrap_for_primary(id, block_sum_data, block, samples)
+    
+    d_err.append(std)
+  
+  
+  
+                
 #***************************
 # unit testing
 
