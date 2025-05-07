@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import sys
+
 import numpy as np
 import blocksum as bs
 import progressbar as pb
@@ -32,7 +34,7 @@ def bootstrap_for_primary(func, vec_in, block, samples):
   # cut vec_in to have a number of columns multiple of "block" and apply "func" 
   data=func(vec_in[:end])  
 
-  block_sum_data=bs.blocksum(data, block)/float(block)
+  block_sum_data=bs.blocksum(data, block)/np.float64(block)
 
   # generate bootstrap samples
   aux=len(block_sum_data)
@@ -68,7 +70,7 @@ def bootstrap_for_secondary(func2, block, samples, show_progressbar, *args):
     sys.exit(1)
 
 
-  secondary_samples=np.empty(samples, dtype=np.float)
+  secondary_samples=np.empty(samples, dtype=np.float64)
 
   for sample in range(samples):
     if show_progressbar==1:
@@ -88,7 +90,7 @@ def bootstrap_for_secondary(func2, block, samples, show_progressbar, *args):
       data=func_l(vec_l[:end])  
 
       #block
-      block_sum_data=bs.blocksum(data, block)/float(block)
+      block_sum_data=bs.blocksum(data, block)/np.float64(block)
 
       #sample average
       tmp = np.average([block_sum_data[i] for i in resampling])  
