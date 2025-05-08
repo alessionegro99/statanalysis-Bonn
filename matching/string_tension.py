@@ -11,9 +11,6 @@ import plot
 import progressbar as pb
 import bootstrap as boot
 
-def potential_wilsont(W, wt):
-    return -1/wt*np.log(W)
-
 def readfile(path):
     output = np.loadtxt(f'{path}/analysis/dati.dat', skiprows=1)
     columns = [output[:, i] for i in range(output.shape[1])]
@@ -58,8 +55,48 @@ def blocksize_analysis(path):
 def plot_potential_Wilsont(path):
     data = readfile(path)
     
+    def potential(x):
+        eps=1e-10
+        return -np.log(np.clip(x, eps, None))
+    
+    def id(x):
+        return x
+    
+    seed = 8220
+    wtmax = 1
+    wsmax = 10
+    
+    plt.figure(figsize=(16,12))
+        
+    for wt in range(wtmax):
+        V = []
+        d_V = []
+        for ws in range(wsmax):
+            pb.progress_bar(ws, wsmax)
+            W = data[:, 4 + ws + wsmax*wt]
+
+            args = [id, W]
+            
+            ris, err = boot.bootstrap_for_secondary(potential, 50, 500, 0, args, seed=seed)
+            V.append(ris/(wt+1))
+            d_V.append(err/(wt+1))
+        
+        
+    plt.xlabel(r'$x$')
+    plt.ylabel(r'$y$', rotation = 0)
+    plt.gca().yaxis.set_label_coords(-0.1, 0.5)
+    plt.title(r'title')
+            
+    plt.xticks(rotation=0)  
+    plt.yticks(rotation=0) 
+    
+    plt.grid (True, linestyle = '--', linewidth = 0.25)
+    #plt.show()
+    #plt.savefig(f"{path}/analysis/.png", dpi=300, bbox_inches='tight')
+    
     
     
 if __name__ == "__main__":
     path = "/home/negro/projects/matching/string_tension/L42_b1.7"
     
+    plot_potential_Wilsont(path)

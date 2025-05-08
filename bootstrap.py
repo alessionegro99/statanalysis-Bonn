@@ -15,7 +15,7 @@ __all__ = ["bootstrap_for_primary", "bootstrap_for_secondary", "blocksize_analys
 #***************************
 #library functions
 
-def bootstrap_for_primary(func, vec_in, block, samples, seed=0):
+def bootstrap_for_primary(func, vec_in, block, samples, seed=None):
   """Bootstrap for primary observables.
 
   Given a numpy vector "vec_in", compute 
@@ -43,7 +43,7 @@ def bootstrap_for_primary(func, vec_in, block, samples, seed=0):
   # generate bootstrap samples
   aux=len(block_sum_data)
   
-  if seed==0:
+  if seed==None:
     bootsample=np.random.choice(block_sum_data, size=(samples, aux), replace=True )
   else:
     np.random.seed(seed)
@@ -57,7 +57,7 @@ def bootstrap_for_primary(func, vec_in, block, samples, seed=0):
   return ris, err
 
 
-def bootstrap_for_secondary(func2, block, samples, show_progressbar, *args):
+def bootstrap_for_secondary(func2, block, samples, show_progressbar, *args, seed=None):
   """Bootstrap for secondary observables.
   
   Every element of *arg is a list of two element of the form
@@ -67,8 +67,8 @@ def bootstrap_for_secondary(func2, block, samples, show_progressbar, *args):
   with blocksize "block" for blocking
   and "samples" resampling
   show_progressbar: if =1 show the progressbar
+  seed: if != 0 the rng is seeded with seed
   """
-
   if not isinstance(block, int):
     print("ERROR: blocksize has to be an integer!")
     sys.exit(1)
@@ -77,9 +77,11 @@ def bootstrap_for_secondary(func2, block, samples, show_progressbar, *args):
     print("ERROR: blocksize has to be positive!")
     sys.exit(1)
 
-
   secondary_samples=np.empty(samples, dtype=np.float64)
 
+  if seed!=None:
+    np.random.seed(seed)
+  
   for sample in range(samples):
     if show_progressbar==1:
       pb.progress_bar(sample, samples)
@@ -195,19 +197,20 @@ if __name__=="__main__":
 
   size=5000
   samples=500
-
+  
   # gaussian independent data 
   mu=1.0
   sigma=0.2
-  test_noauto=np.random.normal(mu, sigma, size)
-
+  rng = np.random.default_rng(123)
+  test_noauto=rng.normal(mu, sigma, size)
+  
   # NO AUTOCORRELATION
 
   # test for primary
   print("Test for primary observables without autocorrelation")
   print("result must be compatible with %f" % mu)
 
-  ris, err = bootstrap_for_primary(id, test_noauto, 1, samples, seed=123)
+  ris, err = bootstrap_for_primary(id, test_noauto, 1, samples, seed=None)
 
   print("average = %f" % ris)
   print("    err = %f" % err)
@@ -219,7 +222,7 @@ if __name__=="__main__":
 
   list0=[square, test_noauto]
   list1=[id, test_noauto]
-  ris, err = bootstrap_for_secondary(susc, 1, samples, 1, list0, list1)
+  ris, err = bootstrap_for_secondary(susc, 1, samples, 1, list0, list1, seed=None)
 
   print("average = %f" % ris)
   print("    err = %f" % err)
