@@ -3,15 +3,19 @@
 import sys
 
 import numpy as np
+import matplotlib.pyplot as plt
+
+
 import blocksum as bs
 import progressbar as pb
+import plot
 
 __all__ = ["bootstrap_for_primary", "bootstrap_for_secondary", "blocksize_analysis_primary"]
 
 #***************************
 #library functions
 
-def bootstrap_for_primary(func, vec_in, block, samples):
+def bootstrap_for_primary(func, vec_in, block, samples, seed=0):
   """Bootstrap for primary observables.
 
   Given a numpy vector "vec_in", compute 
@@ -38,8 +42,12 @@ def bootstrap_for_primary(func, vec_in, block, samples):
 
   # generate bootstrap samples
   aux=len(block_sum_data)
-  bootsample=np.random.choice(block_sum_data,(samples, aux) )
   
+  if seed==0:
+    bootsample=np.random.choice(block_sum_data, size=(samples, aux), replace=True )
+  else:
+    np.random.seed(seed)
+    bootsample = np.random.choice(block_sum_data, size=(samples, aux), replace=True)
   # sum up the samples
   risboot=np.sum(bootsample, axis=1)/len(block_sum_data)
 
@@ -49,7 +57,7 @@ def bootstrap_for_primary(func, vec_in, block, samples):
   return ris, err
 
 
-def bootstrap_for_secondary(func2, block, samples, show_progressbar, *blocksize):
+def bootstrap_for_secondary(func2, block, samples, show_progressbar, *args):
   """Bootstrap for secondary observables.
   
   Every element of *arg is a list of two element of the form
@@ -79,9 +87,9 @@ def bootstrap_for_secondary(func2, block, samples, show_progressbar, *blocksize)
     primary_samples=[]
 
     numblocks=int(len(args[0][1])/block)
-    end =  block * numblocks
-
-    resampling = np.random.randint(0,numblocks,size=numblocks) 
+    end =  block * numblocks  
+    
+    resampling = np.random.randint(0,numblocks,size=numblocks)
 
     for arg in args:
       func_l, vec_l = arg
@@ -105,7 +113,7 @@ def bootstrap_for_secondary(func2, block, samples, show_progressbar, *blocksize)
 
   return ris, err
 
-def blocksize_analysis_primary(vec_in, samples, *blocksize):      
+def blocksize_analysis_primary(vec_in, samples, block_vec, savefig=0, path=None):      
   """Blocksize analysis for primary observables.
   
   Given a numpy vector "vec_in", 
@@ -114,17 +122,20 @@ def blocksize_analysis_primary(vec_in, samples, *blocksize):
   Starting from "blocksize_min" to
   "blocksize_max" with steps of size "blocksize_step".
   Uses "samples" bootstrap samples to compute the error.
-  "blocksize" is a vector 
+  "block_vec" is a vector 
   [blocksize_min,blocksize_max,blocksize_step]
   """
-  
   def id(x):
     return x
   
   err = []
   d_err = []
   
-  for block in range(blocksize[0], blocksize[1], blocksize[2]):
+  block_range = range(block_vec[0], block_vec[1], block_vec[2])
+  
+  for block in block_range:
+    pb.progress_bar(block, block_vec[1])
+    
     numblocks=int(len(vec_in)/block)
     end =  block * numblocks
 
@@ -132,15 +143,30 @@ def blocksize_analysis_primary(vec_in, samples, *blocksize):
 
     block_sum_data=bs.blocksum(data, block)/np.float64(block)
     
-    err.append(np.mean(block_sum_data))
+    err.append(np.std(block_sum_data)/numblocks**0.5)
     
-    foo, std = bootstrap_for_primary(id, block_sum_data, block, samples)
+    foo, std = bootstrap_for_primary(id, data, 1, samples, seed=8220)
     
-    d_err.append(std)
+    d_err.append(std/numblocks**0.5)
+    
+  plt.figure(figsize=(16,12))
+  plt.errorbar(block_range, err, yerr=d_err,
+                fmt='o-', capsize=3, 
+                markersize=2, linewidth=0.375,
+                color=plot.color_dict[1])
+    
+  plt.xlabel(r'$K$')
+  plt.ylabel(r'$\sigma_{\overline{F(x)}}$', rotation=0)
+  plt.title("Standard deviation of the mean as a function of the blocksize.")
+  plt.gca().yaxis.set_label_coords(-0.1, 0.5)
+
+  plt.grid(True, which='both', linestyle='--', linewidth=0.25)
   
+  if savefig==0:
+    plt.show()
+  elif savefig==1:
+    plt.savefig(f'{path}/blocksize_analysis.png')
   
-  
-                
 #***************************
 # unit testing
 
@@ -173,7 +199,7 @@ if __name__=="__main__":
   print("Test for primary observables without autocorrelation")
   print("result must be compatible with %f" % mu)
 
-  ris, err = bootstrap_for_primary(id, test_noauto, 1, samples)
+  ris, err = bootstrap_for_primary(id, test_noauto, 1, samples, seed=123)
 
   print("average = %f" % ris)
   print("    err = %f" % err)
@@ -190,6 +216,22 @@ if __name__=="__main__":
   print("average = %f" % ris)
   print("    err = %f" % err)
   print()
+  
+  # Parameters
+  n = 10000           # Length of the vector
+  rho = 0.1         # Autocorrelation coefficient (close to 1 for heavy autocorrelation)
+  sigma = 1          # Standard deviation of the white noise
+
+  # Generate white noise
+  np.random.seed(0)
+  noise = np.random.normal(0, sigma, n)
+
+  # Initialize the vector
+  x = np.zeros(n)
+  for t in range(1, n):
+      x[t] = rho * x[t-1] + noise[t]
+    
+  blocksize_analysis_primary(x, 200, [1, 500, 1])
 
   print("**********************")
 
