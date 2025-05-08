@@ -11,10 +11,15 @@ import plot
 import progressbar as pb
 import bootstrap as boot
 
+def potential_wilsont(W, wt):
+    return -1/wt*np.log(W)
+
 def readfile(path):
     output = np.loadtxt(f'{path}/analysis/dati.dat', skiprows=1)
     columns = [output[:, i] for i in range(output.shape[1])]
 
+    # plaqs plaqt ReP ImP W(wt=1,ws=1) W(Wt=1,ws=2) ... W(wt=1,ws=10) W(wt=2,ws=10) ... W(wt=10,ws=10)
+    
     return np.column_stack(columns)
     
 def thermalization_plaqt(path): 
@@ -50,8 +55,11 @@ def blocksize_analysis(path):
     obs=data[:,1]
     boot.blocksize_analysis_primary(obs, 200, [2, 500, 10], savefig=1, path=f"{path}/analysis/")
     
+def plot_potential_Wilsont(path):
+    data = readfile(path)
+    
+    
+    
 if __name__ == "__main__":
     path = "/home/negro/projects/matching/string_tension/L42_b1.7"
     
-    #thermalization_plaqt(path)
-    blocksize_analysis(path)

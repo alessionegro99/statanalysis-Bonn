@@ -143,12 +143,20 @@ def blocksize_analysis_primary(vec_in, samples, block_vec, savefig=0, path=None)
 
     block_sum_data=bs.blocksum(data, block)/np.float64(block)
     
+    # estimator for the mean of the average for blocksize=block
     err.append(np.std(block_sum_data)/numblocks**0.5)
+  
+    tmp = []
     
-    foo, std = bootstrap_for_primary(id, data, 1, samples, seed=8220)
+    for sample in range(samples):  
+      resampling = np.random.randint(0,numblocks,size=numblocks)
+      # compute the mean of the average on each of the bootstrap samples
+      tmp.append(np.std(block_sum_data[resampling])/numblocks**0.5)
     
-    d_err.append(std/numblocks**0.5)
-    
+    # the error on the mean of the average is the stdev of the mean of the average
+    # computed on the bootstrap samples
+    d_err.append(np.std(tmp))
+        
   plt.figure(figsize=(16,12))
   plt.errorbar(block_range, err, yerr=d_err,
                 fmt='o-', capsize=3, 
@@ -231,7 +239,7 @@ if __name__=="__main__":
   for t in range(1, n):
       x[t] = rho * x[t-1] + noise[t]
     
-  blocksize_analysis_primary(x, 200, [1, 500, 1])
+  blocksize_analysis_primary(x, 200, [1, 500, 10])
 
   print("**********************")
 
