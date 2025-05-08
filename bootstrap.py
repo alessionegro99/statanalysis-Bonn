@@ -113,7 +113,7 @@ def bootstrap_for_secondary(func2, block, samples, show_progressbar, *args, seed
   ris=np.mean(secondary_samples)
   err=np.std(secondary_samples, ddof=1)
 
-  return ris, err
+  return ris, err, secondary_samples
 
 def blocksize_analysis_primary(vec_in, samples, block_vec, savefig=0, path=None):      
   """Blocksize analysis for primary observables.

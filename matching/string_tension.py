@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import plot
 import progressbar as pb
 import bootstrap as boot
+import regression as reg
 
 def readfile(path):
     output = np.loadtxt(f'{path}/analysis/dati.dat', skiprows=1)
@@ -52,7 +53,7 @@ def blocksize_analysis(path):
     obs=data[:,1]
     boot.blocksize_analysis_primary(obs, 200, [2, 500, 10], savefig=1, path=f"{path}/analysis/")
     
-def plot_potential_Wilsont(path):
+def plot_potential_Wilsont(path, savefig=0):
     data = readfile(path)
     
     def potential(x):
@@ -63,14 +64,18 @@ def plot_potential_Wilsont(path):
         return x
     
     seed = 8220
-    wtmax = 1
+    wtmax = 10
     wsmax = 10
+    
+    wtmaxplot = 5
+    wsplot = range(1, wsmax+1)
     
     plt.figure(figsize=(16,12))
         
-    for wt in range(wtmax):
+    for wt in range(wtmaxplot):
         V = []
         d_V = []
+        
         for ws in range(wsmax):
             pb.progress_bar(ws, wsmax)
             W = data[:, 4 + ws + wsmax*wt]
@@ -81,22 +86,207 @@ def plot_potential_Wilsont(path):
             V.append(ris/(wt+1))
             d_V.append(err/(wt+1))
         
+        plt.errorbar(wsplot, V, d_V, **plot.data(wt), label=fr'$w_t={wt+1}$')
         
-    plt.xlabel(r'$x$')
-    plt.ylabel(r'$y$', rotation = 0)
+        
+    plt.xlabel(r'$w_s$')
+    plt.ylabel(r'$aV(w_s)$', rotation=0)
     plt.gca().yaxis.set_label_coords(-0.1, 0.5)
-    plt.title(r'title')
+    plt.title(r'$aV(w_t, w_s)$ for $\beta = 1.7, N_s = 42, N_t = 42$')
             
     plt.xticks(rotation=0)  
     plt.yticks(rotation=0) 
     
     plt.grid (True, linestyle = '--', linewidth = 0.25)
-    #plt.show()
-    #plt.savefig(f"{path}/analysis/.png", dpi=300, bbox_inches='tight')
+    plt.legend()
     
+    if savefig==0:
+        plt.show()
+    elif savefig==1:
+        plt.savefig(f"{path}/analysis/potential_wt.png", dpi=300, bbox_inches='tight')
+  
+def plot_potential_ws(path, savefig=0):
+    data = readfile(path)
+    
+    def potential(x):
+        eps=1e-10
+        return -np.log(np.clip(x, eps, None))
+    
+    def id(x):
+        return x
+    
+    seed = 8220
+    wtmax = 10
+    wsmax = 10
+    
+    wtmaxplot = 5
+    wtplot = np.arange(1, wtmaxplot+1)
+    
+    plt.figure(figsize=(16,12))
+    
+    for ws in range(wsmax):
+        V = []
+        d_V = []
+        
+        for wt in range(wtmaxplot):
+            pb.progress_bar(wt, wtmax)
+            W = data[:, 4 + ws + wtmax*wt]
+            
+            args = [id, W]
+            
+            ris, err = boot.bootstrap_for_secondary(potential, 50, 500, 0, args, seed=seed)
+            V.append(ris/(wt+1))
+            d_V.append(err/(wt+1))
+        
+        plt.errorbar(1/wtplot, V, d_V, **plot.data(ws), label=fr'$w_t={ws+1}$')
+
+    plt.xlabel(r'$w_t$')
+    plt.ylabel(r'$aV(w_t)$', rotation=0)
+    plt.gca().yaxis.set_label_coords(-0.1, 0.5)
+    plt.title(r'$aV(w_t, w_s)$ for $\beta = 1.7, N_s = 42, N_t = 42$')
+            
+    plt.xticks(rotation=0)  
+    plt.yticks(rotation=0) 
+    
+    plt.grid (True, linestyle = '--', linewidth = 0.25)
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))    
+    
+    if savefig==0:
+        plt.show()
+    elif savefig==1:
+        plt.savefig(f"{path}/analysis/potential_ws.png", dpi=300, bbox_inches='tight')
+        
+def plot_fit_potential_ws(path, savefig=0):
+    data = readfile(path)
+    
+    def potential(x):
+        eps=1e-10
+        return -np.log(np.clip(x, eps, None))
+    
+    def id(x):
+        return x
+    
+    def ansatz(x, pars):
+        return pars[0] + pars[1]*x
+    
+    seed = 8220
+    wtmax = 10
+    wsmax = 1
+    
+    wtmaxplot = 5
+    wtplot = 1/np.arange(1, wtmaxplot+1)
+    
+    plt.figure(figsize=(16,12))
+    
+    for ws in range(wsmax):
+        V = []
+        d_V = []
+        
+        for wt in range(wtmaxplot):
+            pb.progress_bar(wt, wtmax)
+            W = data[:, 4 + ws + wtmax*wt]
+            
+            args = [id, W]
+            
+            ris, err = boot.bootstrap_for_secondary(potential, 50, 500, 0, args, seed=seed)
+            V.append(ris/(wt+1))
+            d_V.append(err/(wt+1))
+        
+        plt.errorbar(wtplot, V, d_V, **plot.data(ws), label=fr'$w_t={ws+1}$')
+        
+        params = [1,1]
+        
+        V = np.array(V)
+        d_V = np.array(d_V)
+                
+        risfit, errfit,\
+        chi2, dof, pvalue, boot_sample,\
+        x_band_tr, mean_band_tr, std_band_tr =\
+            reg.fit_with_yerr(wtplot, V, d_V\
+                              , 0, wtplot[3], ansatz, params, 200,\
+                              plot_fit=0, plot_band=0, plot_residuals=0, plot_distribution=0, save_figs = 0)
+
+    plt.xlabel(r'$w_t$')
+    plt.ylabel(r'$aV(w_t)$', rotation=0)
+    plt.gca().yaxis.set_label_coords(-0.1, 0.5)
+    plt.title(r'$aV(w_t, w_s)$ for $\beta = 1.7, N_s = 42, N_t = 42$')
+            
+    plt.xticks(rotation=0)  
+    plt.yticks(rotation=0) 
+    
+    plt.grid (True, linestyle = '--', linewidth = 0.25)
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))    
+    
+    if savefig==0:
+        plt.show()
+    elif savefig==1:
+        plt.savefig(f"{path}/analysis/potential_ws.png", dpi=300, bbox_inches='tight')
+        
+def fit_yerr_uncorrelated(path):
+    data = readfile(path)
+    
+    def potential(x):
+        eps=1e-10
+        return -np.log(np.clip(x, eps, None))
+    
+    def id(x):
+        return x
+    
+    seed = 8220
+    samples = 200
+    
+    x = [1, 2, 3, 4, 5]
+    y_t0 = []
+    y = []
+    d_y = []
+    boot_y = []
+    
+    for wt in range(5):
+        W = data[:, 4 + 8 + 10*wt]
+        
+        args = [id, W]
+        
+        ris, err, bsamples = boot.bootstrap_for_secondary(potential, 50, samples, 0, args, seed=seed) 
+        
+        y_t0.append(-1/(wt+1)*np.log(np.mean(W)))
+        y.append(ris/(wt+1))
+        d_y.append(err/(wt+1))
+        boot_y.append(bsamples/(wt+1))
+
+    y = np.array(y)
+    d_y = np.array(d_y)
+    boot_y = np.column_stack(boot_y)
+    
+    def func(x, *params):
+        return params[0] + params[1]*x
+    
+    from scipy.optimize import curve_fit
+    
+    p0 = [1,1]
+    
+    opt, cov = curve_fit(func, x, y_t0, sigma=d_y, absolute_sigma=True, p0=p0)
+    print(opt)
+
+    boot_opt = []
+    boot_cov = []
+    for sample in range(samples):
+        aux = boot_y[sample,:]
+        aux1, aux2 = curve_fit(func, x, aux, sigma=d_y, absolute_sigma=True, p0=p0)
+        boot_opt.append(aux1)
+    print(np.mean(boot_opt, axis = 0))
+    print(np.std(boot_opt, axis = 0))
+    
+    xfit = np.linspace(0,)
+        
+        
+
     
     
 if __name__ == "__main__":
     path = "/home/negro/projects/matching/string_tension/L42_b1.7"
     
-    plot_potential_Wilsont(path)
+    #plot_potential_Wilsont(path, savefig=1)
+    #plot_potential_ws(path, savefig=1)
+    #plot_fit_potential_ws(path, savefig=0)
+    
+    fit_yerr_uncorrelated(path)

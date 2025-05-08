@@ -38,7 +38,7 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
    the value of chi^2,the number of dof, the p-value
    and the bootstrap samples of the parameters.
    """
-
+      
    mask = ((x<=xmax) & (x>=xmin))
    x=x[mask]
    y=y[mask]
@@ -49,12 +49,12 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
    data_length=len(x)
  
    # array to store the bootstrapped results 
-   boot_sample=np.empty((len(params), samples), dtype=np.float)
+   boot_sample=np.empty((len(params), samples), dtype=np.float64)
 
    if plot_band==1:
      x_band=np.linspace(xmin, xmax, band_size)
-     boot_band=np.empty((band_size, samples), dtype=np.float)
-     
+     boot_band=np.empty((band_size, samples), dtype=np.float64)
+          
    for i in range(samples): 
      if show_progressbar==1:
        pb.progress_bar(i, samples)
@@ -68,7 +68,7 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
 
      if plot_band==1:
        boot_band[:,i]=func(x_band, ris[0])
-
+      
    # optimal parameters and errors
    ris=np.mean(boot_sample, axis=1)
    err=np.std(boot_sample, axis=1, ddof=1)
@@ -78,7 +78,6 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
    chi2=np.sum(opt_res*opt_res)
    dof=data_length - len(params)
    pvalue=1.0 - stats.chi2.cdf(chi2, dof)
-
 
    if plot_fit==1:
      x_aux=np.linspace(xmin, xmax, 1000)
@@ -131,7 +130,8 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
          plt.show()
 
    return ris, err, chi2, dof, pvalue, boot_sample
-
+ 
+def fit_yerr_uncorrelated(x, y, dy, bsamples, maskfit, maskplot):
 
 def _residuals_xyerr(extended_params, x, dx, y, dy, true_param_length, func):
    """
@@ -182,11 +182,11 @@ def fit_with_xyerr(x, dx, y, dy, xmin, xmax, func, params, samples, \
    extended_params=np.append(params, x)
  
    # array to store the bootstrapped results 
-   boot_sample=np.empty((len(params), samples), dtype=np.float)
+   boot_sample=np.empty((len(params), samples), dtype=np.float64)
 
    if plot_band==1:
      x_band=np.linspace(xmin, xmax, band_size)
-     boot_band=np.empty((band_size, samples), dtype=np.float)
+     boot_band=np.empty((band_size, samples), dtype=np.float64)
   
    for i in range(samples):
      if show_progressbar==1: 
@@ -263,6 +263,47 @@ def fit_with_xyerr(x, dx, y, dy, xmin, xmax, func, params, samples, \
          plt.show()
 
    return ris, err, chi2, dof, pvalue, boot_sample
+ 
+
+def chi2_yerr(x, y, model, C_ij, *params):
+    """
+    Compute chi-squared for a model with correlated residuals.
+    
+    Parameters:
+    - x: array-like, input values
+    - y: array-like, observed values
+    - model: callable, should accept (x, *params)
+    - C_ij: 2D array, covariance matrix
+    - *params: variable list of model parameters
+
+    Returns:
+    - chi2
+    """
+    residuals = y - model(x, *params)
+    
+    chi2 = np.sum(residuals * (np.linalg.inv(C_ij) @ residuals))
+
+    return chi2
+
+
+def format_uncertainty(value, dvalue, significance=2):
+    """Creates a string of a value and its error in paranthesis notation, e.g., 13.02(45)"""
+    if dvalue == 0.0 or (not np.isfinite(dvalue)):
+        return str(value)
+    if not isinstance(significance, int):
+        raise TypeError("significance needs to be an integer.")
+    if significance < 1:
+        raise ValueError("significance needs to be larger than zero.")
+    fexp = np.floor(np.log10(dvalue))
+    if fexp < 0.0:
+        return '{:{form}}({:1.0f})'.format(value, dvalue * 10 ** (-fexp + significance - 1), form='.' + str(-int(fexp) + significance - 1) + 'f')
+    elif fexp == 0.0:
+        return f"{value:.{significance - 1}f}({dvalue:1.{significance - 1}f})"
+    else:
+        return f"{value:.{max(0, int(significance - fexp - 1))}f}({dvalue:2.{max(0, int(significance - fexp - 1))}f})"
+
+def format_uncertainty_vec(values, dvalues, significance=2):
+    return [format_uncertainty(v, d, significance) for v, d in zip(values, dvalues)]
 
 
 #***************************
@@ -285,7 +326,7 @@ if __name__=="__main__":
   print("Points generated with y=2*x*x + gaussian noise")
   print()
 
-  fitparams=np.array([0.1, 1.2], dtype=np.float)
+  fitparams=np.array([0.1, 1.2], dtype=np.float64)
   def parabfit(x, param):
     return param[0]+ x*x*param[1]
 
