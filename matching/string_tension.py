@@ -222,7 +222,7 @@ def plot_fit_potential_ws(path, savefig=0):
     elif savefig==1:
         plt.savefig(f"{path}/analysis/potential_ws.png", dpi=300, bbox_inches='tight')
         
-def fit_yerr_uncorrelated(path):
+def asd(path):
     data = readfile(path)
     
     def potential(x):
@@ -253,6 +253,7 @@ def fit_yerr_uncorrelated(path):
         d_y.append(err/(wt+1))
         boot_y.append(bsamples/(wt+1))
 
+    x = np.array(x)
     y = np.array(y)
     d_y = np.array(d_y)
     boot_y = np.column_stack(boot_y)
@@ -260,25 +261,15 @@ def fit_yerr_uncorrelated(path):
     def func(x, *params):
         return params[0] + params[1]*x
     
-    from scipy.optimize import curve_fit
+    extra = {"p0": [1,1]}
     
-    p0 = [1,1]
+    opt, cov, boot_opt, boot_cov = reg.fit_yerr_uncorrelated(func, 1/x, y_t0, d_y, boot_y, [2,5], [0,5], [0.,1.], **extra)
+        
     
-    opt, cov = curve_fit(func, x, y_t0, sigma=d_y, absolute_sigma=True, p0=p0)
+        
     print(opt)
-
-    boot_opt = []
-    boot_cov = []
-    for sample in range(samples):
-        aux = boot_y[sample,:]
-        aux1, aux2 = curve_fit(func, x, aux, sigma=d_y, absolute_sigma=True, p0=p0)
-        boot_opt.append(aux1)
     print(np.mean(boot_opt, axis = 0))
-    print(np.std(boot_opt, axis = 0))
-    
-    xfit = np.linspace(0,)
-        
-        
+    print(cov[0][0]**0.5)
 
     
     
@@ -289,4 +280,4 @@ if __name__ == "__main__":
     #plot_potential_ws(path, savefig=1)
     #plot_fit_potential_ws(path, savefig=0)
     
-    fit_yerr_uncorrelated(path)
+    asd(path)

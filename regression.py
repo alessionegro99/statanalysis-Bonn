@@ -4,7 +4,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.optimize as opt
 import scipy.stats as stats
+
+from scipy.optimize import curve_fit
+
 import progressbar as pb
+import plot
 
 __all__ = ["fit_with_yerr", "fit_with_xyerr"]
 
@@ -131,7 +135,48 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
 
    return ris, err, chi2, dof, pvalue, boot_sample
  
-def fit_yerr_uncorrelated(x, y, dy, bsamples, maskfit, maskplot):
+def fit_yerr_uncorrelated(func, x, y, d_y, bsamples, \
+                          maskfit, maskplot, rangeplot, **kwargs):
+  
+  xfit=x[maskfit[0]:maskfit[1]]
+  yfit=y[maskfit[0]:maskfit[1]]
+  d_yfit=d_y[maskfit[0]:maskfit[1]]
+  bsamplesfit=bsamples[:,maskfit[0]:maskfit[1]]
+  
+  xplot=x[maskplot[0]:maskplot[1]]
+  yplot=y[maskplot[0]:maskplot[1]]
+  d_yplot=d_y[maskplot[0]:maskplot[1]]
+  bsamplesplot=bsamples[:,maskplot[0]:maskplot[1]]
+  
+  opt, cov = curve_fit(func, xfit, yfit, sigma=d_yfit, absolute_sigma=True, **kwargs)
+  
+  bandsize = 1000
+  xband = np.linspace(rangeplot[0], rangeplot[-1], bandsize)
+  
+  boot_opt = []
+  boot_cov = []
+  boot_band = []
+  for sample in range(np.shape(bsamplesplot)[0]):
+    aux = bsamplesfit[sample,:]
+    aux1, aux2 = curve_fit(func, xfit, aux, sigma=d_yfit, absolute_sigma=True, **kwargs)
+    
+    boot_opt.append(aux1)
+    boot_cov.append(aux2)
+    boot_band.append(func(xband, *aux1))
+    
+  band_mean = np.mean(boot_band, axis = 0)
+  band_std = np.std(boot_band, axis = 0)
+  
+  plt.figure(figsize=(16,12))
+
+  plt.errorbar(xplot, yplot, d_yplot, **plot.data(1))
+  plt.plot(xband, func(xband, *opt))
+  plt.fill_between(xband, band_mean-band_std, band_mean+band_std, **plot.conf_band(1))
+
+  plt.show()
+  
+  return opt, cov, boot_opt, boot_cov
+  
 
 def _residuals_xyerr(extended_params, x, dx, y, dy, true_param_length, func):
    """
@@ -291,7 +336,7 @@ def format_uncertainty(value, dvalue, significance=2):
     if dvalue == 0.0 or (not np.isfinite(dvalue)):
         return str(value)
     if not isinstance(significance, int):
-        raise TypeError("significance needs to be an integer.")
+        raise TypeError("significance sstdneeds to be an integer.")
     if significance < 1:
         raise ValueError("significance needs to be larger than zero.")
     fexp = np.floor(np.log10(dvalue))
