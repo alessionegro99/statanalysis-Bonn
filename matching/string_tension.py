@@ -169,43 +169,51 @@ def plot_fit_potential_ws(path, savefig=0):
     def ansatz(x, pars):
         return pars[0] + pars[1]*x
     
+    def ansatz_wrapper(x, a, b):
+        pars = [a, b]
+        return ansatz(x, pars)
+    
     seed = 8220
+    samples = 200
+    
     wtmax = 10
-    wsmax = 1
+    wsmax = 10
     
     wtmaxplot = 5
     wtplot = 1/np.arange(1, wtmaxplot+1)
-    
-    plt.figure(figsize=(16,12))
-    
-    for ws in range(wsmax):
-        V = []
-        d_V = []
         
+    x = range(1, wtmaxplot+1)
+
+    plt.figure(figsize=(16,12))
+    for ws in range(wsmax):
+        y_t0 = []
+        y = []
+        d_y = []
+        boot_y = []
+            
         for wt in range(wtmaxplot):
             pb.progress_bar(wt, wtmax)
             W = data[:, 4 + ws + wtmax*wt]
             
             args = [id, W]
             
-            ris, err = boot.bootstrap_for_secondary(potential, 50, 500, 0, args, seed=seed)
-            V.append(ris/(wt+1))
-            d_V.append(err/(wt+1))
+            ris, err, bsamples = boot.bootstrap_for_secondary(potential, 50, samples, 0, args, seed=seed)
+            
+            y_t0.append(-1/(wt+1)*np.log(np.mean(W)))
+            y.append(ris/(wt+1))
+            d_y.append(err/(wt+1))
+            boot_y.append(bsamples/(wt+1))
         
-        plt.errorbar(wtplot, V, d_V, **plot.data(ws), label=fr'$w_t={ws+1}$')
+        x = np.array(x)
+        y = np.array(y)
+        d_y = np.array(d_y)
+        boot_y = np.column_stack(boot_y)
         
-        params = [1,1]
+        curve_fit_dict = {"p0": [1,1]}
+        opt, cov, boot_opt, boot_cov = reg.fit_yerr_uncorrelated(ansatz_wrapper, 1/x, y_t0, d_y, boot_y, \
+        [2,5], [0,5], [0.,1.], 1, \
+        curve_fit_dict, plot.data(ws), plot.fit(ws), plot.conf_band(ws))
         
-        V = np.array(V)
-        d_V = np.array(d_V)
-                
-        risfit, errfit,\
-        chi2, dof, pvalue, boot_sample,\
-        x_band_tr, mean_band_tr, std_band_tr =\
-            reg.fit_with_yerr(wtplot, V, d_V\
-                              , 0, wtplot[3], ansatz, params, 200,\
-                              plot_fit=0, plot_band=0, plot_residuals=0, plot_distribution=0, save_figs = 0)
-
     plt.xlabel(r'$w_t$')
     plt.ylabel(r'$aV(w_t)$', rotation=0)
     plt.gca().yaxis.set_label_coords(-0.1, 0.5)
@@ -221,57 +229,6 @@ def plot_fit_potential_ws(path, savefig=0):
         plt.show()
     elif savefig==1:
         plt.savefig(f"{path}/analysis/potential_ws.png", dpi=300, bbox_inches='tight')
-        
-def asd(path):
-    data = readfile(path)
-    
-    def potential(x):
-        eps=1e-10
-        return -np.log(np.clip(x, eps, None))
-    
-    def id(x):
-        return x
-    
-    seed = 8220
-    samples = 200
-    
-    x = [1, 2, 3, 4, 5]
-    y_t0 = []
-    y = []
-    d_y = []
-    boot_y = []
-    
-    for wt in range(5):
-        W = data[:, 4 + 8 + 10*wt]
-        
-        args = [id, W]
-        
-        ris, err, bsamples = boot.bootstrap_for_secondary(potential, 50, samples, 0, args, seed=seed) 
-        
-        y_t0.append(-1/(wt+1)*np.log(np.mean(W)))
-        y.append(ris/(wt+1))
-        d_y.append(err/(wt+1))
-        boot_y.append(bsamples/(wt+1))
-
-    x = np.array(x)
-    y = np.array(y)
-    d_y = np.array(d_y)
-    boot_y = np.column_stack(boot_y)
-    
-    def func(x, *params):
-        return params[0] + params[1]*x
-    
-    extra = {"p0": [1,1]}
-    
-    opt, cov, boot_opt, boot_cov = reg.fit_yerr_uncorrelated(func, 1/x, y_t0, d_y, boot_y, [2,5], [0,5], [0.,1.], **extra)
-        
-    
-        
-    print(opt)
-    print(np.mean(boot_opt, axis = 0))
-    print(cov[0][0]**0.5)
-
-    
     
 if __name__ == "__main__":
     path = "/home/negro/projects/matching/string_tension/L42_b1.7"
@@ -280,4 +237,4 @@ if __name__ == "__main__":
     #plot_potential_ws(path, savefig=1)
     #plot_fit_potential_ws(path, savefig=0)
     
-    asd(path)
+    plot_fit_potential_ws(path)

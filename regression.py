@@ -136,8 +136,22 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
    return ris, err, chi2, dof, pvalue, boot_sample
  
 def fit_yerr_uncorrelated(func, x, y, d_y, bsamples, \
-                          maskfit, maskplot, rangeplot, **kwargs):
-  
+                          maskfit, maskplot, rangeplot, plotabstract=0, \
+                            kwargs1=None, kwargs2=None, kwargs3=None, kwargs4=None):
+  """
+  Perform a fit to data on [xmin, xmax] with the function func(x, param),
+  using "samples" bootstrap samples to evaluate the errors.
+
+  maskfit: [start,end] mask to be applied to x for fitting
+  masplot: [start,end] mask to be applied to x for plotting
+  rangeplot: [start,end] float(x) range on which fitline and conf band are plotted
+  kwargs1: for curve_fit
+  kwargs2: for errorbar
+  kwargs3: for plot
+  kwargs4: for confidence band
+
+  return opt, cov and bootstrapped opt and cov.
+  """
   xfit=x[maskfit[0]:maskfit[1]]
   yfit=y[maskfit[0]:maskfit[1]]
   d_yfit=d_y[maskfit[0]:maskfit[1]]
@@ -148,7 +162,7 @@ def fit_yerr_uncorrelated(func, x, y, d_y, bsamples, \
   d_yplot=d_y[maskplot[0]:maskplot[1]]
   bsamplesplot=bsamples[:,maskplot[0]:maskplot[1]]
   
-  opt, cov = curve_fit(func, xfit, yfit, sigma=d_yfit, absolute_sigma=True, **kwargs)
+  opt, cov = curve_fit(func, xfit, yfit, sigma=d_yfit, absolute_sigma=True, **kwargs1)
   
   bandsize = 1000
   xband = np.linspace(rangeplot[0], rangeplot[-1], bandsize)
@@ -158,7 +172,8 @@ def fit_yerr_uncorrelated(func, x, y, d_y, bsamples, \
   boot_band = []
   for sample in range(np.shape(bsamplesplot)[0]):
     aux = bsamplesfit[sample,:]
-    aux1, aux2 = curve_fit(func, xfit, aux, sigma=d_yfit, absolute_sigma=True, **kwargs)
+    
+    aux1, aux2 = curve_fit(func, xfit, aux, sigma=d_yfit, absolute_sigma=True)
     
     boot_opt.append(aux1)
     boot_cov.append(aux2)
@@ -167,13 +182,15 @@ def fit_yerr_uncorrelated(func, x, y, d_y, bsamples, \
   band_mean = np.mean(boot_band, axis = 0)
   band_std = np.std(boot_band, axis = 0)
   
-  plt.figure(figsize=(16,12))
+  if plotabstract==0:
+    plt.figure(figsize=(16,12))
 
-  plt.errorbar(xplot, yplot, d_yplot, **plot.data(1))
-  plt.plot(xband, func(xband, *opt))
-  plt.fill_between(xband, band_mean-band_std, band_mean+band_std, **plot.conf_band(1))
+  plt.errorbar(xplot, yplot, d_yplot, **kwargs2)
+  plt.plot(xband, func(xband, *opt), **kwargs3)
+  plt.fill_between(xband, band_mean-band_std, band_mean+band_std, **kwargs4)
 
-  plt.show()
+  if plotabstract==0:
+    plt.show()
   
   return opt, cov, boot_opt, boot_cov
   

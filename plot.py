@@ -15,15 +15,15 @@ color_dict = {
 
 bright_color_dict = {
     0: '#000000',  # black
-    1: '#648fff',  # bright blue
-    2: '#dc267f',  # bright pink
-    3: '#ffb000',  # bright yellow
-    4: '#785ef0',  # bright purple
-    5: '#fe6100',  # bright orange
-    6: '#17becf',  # teal
-    7: '#bcbd22',  # olive green
-    8: '#e377c2',  # bright magenta
-    9: '#8c564b',  # brown
+    1: '#648fff',  # bright blue 
+    2: '#dc267f',  # bright pink 
+    3: '#ffb000',  # bright yellow 
+    4: '#785ef0',  # bright purple 
+    5: '#fe6100',  # bright orange 
+    6: '#648fff',  # bright blue 
+    7: '#00c49a',  # bright teal-green 
+    8: '#ff7f0e',  # bright burnt orange
+    9: '#e377c2',  # bright magenta 
 }
 
 marker_dict = {
