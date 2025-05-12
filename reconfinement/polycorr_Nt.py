@@ -236,7 +236,7 @@ def fit_polycorr_boot(path):
     df = pl.read_csv(f"{path}dati.dat"
                      , has_header=False
                      , skip_rows = 1
-                     , separator=" "
+                     , separator=" "G_FT
                      , new_columns=new_columns)
     df = df.drop(["null"])
     

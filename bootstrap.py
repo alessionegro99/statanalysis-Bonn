@@ -57,7 +57,7 @@ def bootstrap_for_primary(func, vec_in, block, samples, seed=None):
   return ris, err
 
 
-def bootstrap_for_secondary(func2, block, samples, show_progressbar, *args, seed=None):
+def bootstrap_for_secondary(func2, block, samples, show_progressbar, *args, seed=None, returnsamples=0):
   """Bootstrap for secondary observables.
   
   Every element of *arg is a list of two element of the form
@@ -113,7 +113,10 @@ def bootstrap_for_secondary(func2, block, samples, show_progressbar, *args, seed
   ris=np.mean(secondary_samples)
   err=np.std(secondary_samples, ddof=1)
 
-  return ris, err, secondary_samples
+  if returnsamples==1:
+    return ris, err, secondary_samples
+  else:
+    return ris, err
 
 def blocksize_analysis_primary(vec_in, samples, block_vec, savefig=0, path=None):      
   """Blocksize analysis for primary observables.

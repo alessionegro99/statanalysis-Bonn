@@ -7,6 +7,7 @@ sys.path.append(parent_dir)
 import numpy as np
 import matplotlib.pyplot as plt
 
+import concatenate
 import plot
 import progressbar as pb
 import bootstrap as boot
@@ -16,7 +17,7 @@ def readfile(path):
     output = np.loadtxt(f'{path}/analysis/dati.dat', skiprows=1)
     columns = [output[:, i] for i in range(output.shape[1])]
 
-    # plaqs plaqt ReP ImP W(wt=1,ws=1) W(Wt=1,ws=2) ... W(wt=1,ws=10) W(wt=2,ws=10) ... W(wt=10,ws=10)
+    # plaqs plaqt W(wt=1,ws=1) ... W(wt=10,ws=1) W(wt=1,ws=sqrt(5)) ... W(wt=10,ws=sqrt(5)) W(wt=10,ws=1) W(wt=1,ws=sqrt(8)) ... W(wt=10,ws=sqrt(8))
     
     return np.column_stack(columns)
     
@@ -50,8 +51,8 @@ def thermalization_plaqt(path):
 def blocksize_analysis(path):
     data = readfile(path)
     
-    obs=data[:,1]
-    boot.blocksize_analysis_primary(obs, 200, [2, 500, 10], savefig=1, path=f"{path}/analysis/")
+    obs=data[:,26]
+    boot.blocksize_analysis_primary(obs, 200, [10, 500, 10], savefig=1, path=f"{path}/analysis/")
     
 def plot_potential_Wilsont(path, savefig=0):
     data = readfile(path)
@@ -65,24 +66,25 @@ def plot_potential_Wilsont(path, savefig=0):
     
     seed = 8220
     wtmax = 10
-    wsmax = 10
+    wsmax = 3
     
-    wtmaxplot = 5
-    wsplot = range(1, wsmax+1)
+    wtmaxplot = 6
+    wsplot = [1, np.sqrt(5), np.sqrt(8)]
     
-    plt.figure(figsize=(16,12))
-        
+    blocksizes = [50, 50, 100]
+    
+    plt.figure(figsize=(16,12))    
     for wt in range(wtmaxplot):
         V = []
         d_V = []
         
-        for ws in range(wsmax):
-            pb.progress_bar(ws, wsmax)
-            W = data[:, 4 + ws + wsmax*wt]
+        for ws, blocksize in zip(range(wsmax), blocksizes):
+            #pb.progress_bar(ws, wsmax)
+            W = data[:, 2 + wt + wtmax*ws]
 
             args = [id, W]
             
-            ris, err = boot.bootstrap_for_secondary(potential, 50, 200, 0, args, seed=seed)
+            ris, err = boot.bootstrap_for_secondary(potential, blocksize, 500, 1, args, seed=seed)
             V.append(ris/(wt+1))
             d_V.append(err/(wt+1))
         
@@ -92,7 +94,7 @@ def plot_potential_Wilsont(path, savefig=0):
     plt.xlabel(r'$w_s$')
     plt.ylabel(r'$aV(w_s)$', rotation=0)
     plt.gca().yaxis.set_label_coords(-0.1, 0.5)
-    plt.title(r'$aV(w_t, w_s)$ for $\beta = 1.7, N_s = 42, N_t = 42$')
+    plt.title(r'$aV(w_t, w_s)$ for $\beta = 1.4, N_s = 3, N_t = 42$')
             
     plt.xticks(rotation=0)  
     plt.yticks(rotation=0) 
@@ -104,8 +106,8 @@ def plot_potential_Wilsont(path, savefig=0):
         plt.show()
     elif savefig==1:
         plt.savefig(f"{path}/analysis/potential_wt.png", dpi=300, bbox_inches='tight')
-  
-def plot_potential_ws(path, savefig=0):
+        
+def plot_potential_Wilsont_extrap(path, savefig=0):
     data = readfile(path)
     
     def potential(x):
@@ -116,47 +118,49 @@ def plot_potential_ws(path, savefig=0):
         return x
     
     seed = 8220
+    
     wtmax = 10
-    wsmax = 10
+    wsmax = 3
     
-    wtmaxplot = 5
-    wtplot = np.arange(1, wtmaxplot+1)
+    wtmaxplot = 6
+    wsplot = [1, np.sqrt(5), np.sqrt(8)]
     
-    plt.figure(figsize=(16,12))
+    blocksizes = [50, 50, 100]
     
-    for ws in range(wsmax):
+    plt.figure(figsize=(16,12))    
+    for ws, blocksize in zip(range(wsmax), blocksizes):
         V = []
         d_V = []
         
         for wt in range(wtmaxplot):
-            pb.progress_bar(wt, wtmax)
-            W = data[:, 4 + ws + wtmax*wt]
-            
+            W = data[:, 2 + wt + wtmax*ws]
+
             args = [id, W]
             
-            ris, err = boot.bootstrap_for_secondary(potential, 50, 500, 0, args, seed=seed)
+            ris, err = boot.bootstrap_for_secondary(potential, blocksize, 500, 1, args, seed=seed)
             V.append(ris/(wt+1))
             d_V.append(err/(wt+1))
         
-        plt.errorbar(1/wtplot, V, d_V, **plot.data(ws), label=fr'$w_s={ws+1}$')
-
-    plt.xlabel(r'$1/w_t$')
-    plt.ylabel(r'$aV(1/w_t)$', rotation=0)
+        plt.errorbar(1/np.arange(1,wtmaxplot+1), V, d_V, **plot.data(ws), label=fr'$w_s={wsplot[ws]:.2f}$')
+        
+        
+    plt.xlabel(r'$w_t$')
+    plt.ylabel(r'$aV(w_t)$', rotation=0)
     plt.gca().yaxis.set_label_coords(-0.1, 0.5)
-    plt.title(r'$aV(1/w_t, w_s)$ for $\beta = 1.7, N_s = 42, N_t = 42$')
+    plt.title(r'$aV(w_t, w_s)$ for $\beta = 1.4, N_s = 3, N_t = 42$')
             
     plt.xticks(rotation=0)  
     plt.yticks(rotation=0) 
     
     plt.grid (True, linestyle = '--', linewidth = 0.25)
-    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))    
+    plt.legend()
     
     if savefig==0:
         plt.show()
     elif savefig==1:
         plt.savefig(f"{path}/analysis/potential_ws.png", dpi=300, bbox_inches='tight')
         
-def plot_fit_potential_ws(path, savefig=0):
+def plot_fit_potential_Wilsont_extrap(path, savefig=0):
     data = readfile(path)
     
     def potential(x):
@@ -174,13 +178,16 @@ def plot_fit_potential_ws(path, savefig=0):
         return ansatz(x, pars)
     
     seed = 8220
-    samples = 200
+    samples = 500
     
     wtmax = 10
-    wsmax = 10
+    wsmax = 3
     
-    wtmaxplot = 5
-    wtplot = 1/np.arange(1, wtmaxplot+1)
+    wtmaxplot = 6
+    
+    wsplot = [1, np.sqrt(5), np.sqrt(8)]
+    
+    blocksizes = [50, 50, 100]
         
     x = range(1, wtmaxplot+1)
     
@@ -191,19 +198,18 @@ def plot_fit_potential_ws(path, savefig=0):
     chi2red_file = []
 
     plt.figure(figsize=(16,12))
-    for ws in range(wsmax):
+    for ws, blocksize in zip(range(wsmax), blocksizes):
         y_t0 = []
         y = []
         d_y = []
         boot_y = []
             
         for wt in range(wtmaxplot):
-            pb.progress_bar(wt, wtmax)
-            W = data[:, 4 + ws + wtmax*wt]
+            W = data[:, 2 + wt + wtmax*ws]
             
             args = [id, W]
             
-            ris, err, bsamples = boot.bootstrap_for_secondary(potential, 50, samples, 0, args, seed=seed)
+            ris, err, bsamples = boot.bootstrap_for_secondary(potential, blocksize, samples, 1, args, seed=seed, returnsamples=1)
             
             y_t0.append(-1/(wt+1)*np.log(np.mean(W)))
             y.append(ris/(wt+1))
@@ -217,17 +223,15 @@ def plot_fit_potential_ws(path, savefig=0):
         
         curve_fit_dict = {"p0": [1,1]}
         
-        
         opt, cov, boot_opt, boot_cov, chi2red = reg.fit_yerr_uncorrelated(ansatz_wrapper, 1/x, y_t0, d_y, boot_y, \
-        [2,5], [0,5], [0.,1.], 1, \
-        curve_fit_dict, plot.data(ws), plot.fit(ws), plot.conf_band(ws), label=fr'$w_s={ws+1}$')
+        [2,5], [0,6], [0.,1.], 1, \
+        curve_fit_dict, plot.data(ws), plot.fit(ws), plot.conf_band(ws), label=fr'$w_s={wsplot[ws]:.2f}$')
         
         V_0_file.append(opt[0])
         d_V_0_file.append(cov[0][0]**0.5)
         b_file.append(opt[0])
         d_b_file.append(cov[1][1]**0.5)
         chi2red_file.append(chi2red)        
-        
         
     plt.xlabel(r'$1/w_t$')
     plt.ylabel(r'$aV(1/w_t)$', rotation=0)
@@ -245,42 +249,18 @@ def plot_fit_potential_ws(path, savefig=0):
     elif savefig==1:
         plt.savefig(f"{path}/analysis/fit_potential_ws.png", dpi=300, bbox_inches='tight')
         
-    x_file = np.arange(1,11)
+    x_file = wsplot
     data = np.column_stack((x_file, np.array(V_0_file), np.array(d_V_0_file), np.array(b_file), np.array(d_b_file), np.array(chi2red_file)))
 
-    # Save to a file without a header
     np.savetxt(f"{path}/analysis/output.txt", data)
-
-def fit_plot_Cornell(path):
-    output = np.loadtxt(f'{path}/analysis/output.txt', skiprows=0)
-    columns = [output[:, i] for i in range(output.shape[1])]
     
-    def Cornell(x, pars):
-        return pars[0] + pars[1]/x + pars[2]*x
-    
-    x=columns[0]
-    y=columns[1]
-    dy=columns[2]
-    
-    numsamples = 1000
-    
-    fitparams=np.array([0.1, 1., 1.2], dtype=np.float64)
-            
-    ris, err, chi2, dof, pvalue, boot_sample = reg.fit_with_yerr(x, y, dy, 3, 9, Cornell, fitparams, numsamples)
-    print("  chi^2/dof = {:3.3f}/{:d} = {:3.3f}".format(chi2, dof, chi2/dof))
-    print("  p-value = %f" % pvalue)
-    print()
-    print("  a = {: f} +- {:f}".format(ris[0], err[0]) ) 
-    print("  b = {: f} +- {:f}".format(ris[1], err[1]) )
-    print("  c = {: f} +- {:f}".format(ris[2], err[2]) ) 
-    print()    
-
 if __name__ == "__main__":
-    path = "/home/negro/projects/matching/string_tension/L42_b1.7"
+    path = "/home/negro/projects/matching/step_scaling/T42_L3_b1.4"
     
-    #plot_potential_Wilsont(path, savefig=1)
-    #plot_potential_ws(path, savefig=1)
-    #plot_fit_potential_ws(path, savefig=1)
+    #concatenate.concatenate(f"{path}/data", 100)
+    #thermalization_plaqt(path)
+    #blocksize_analysis(path)
     
-    #plot_fit_potential_ws(path,1)
-    fit_plot_Cornell(path)
+    #plot_potential_Wilsont(path, 1)
+    #plot_potential_Wilsont_extrap(path, 1)
+    plot_fit_potential_Wilsont_extrap(path, 1)

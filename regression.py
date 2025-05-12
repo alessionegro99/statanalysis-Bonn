@@ -24,8 +24,8 @@ def _residuals_yerr(params, x, y, dy, func):
 
 
 def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
-   stop_param=1.0e-15, plot_fit=1, plot_band=1, plot_residuals=1, \
-   plot_distribution=1, save_figs=0, show_progressbar=1):
+   stop_param=1.0e-15, plot_fit=1, plot_fit_total_range=1, plot_band=1, \
+  plot_residuals=1, plot_distribution=1, save_figs=0, show_progressbar=1):
    """
    Perform a fit to data on [xmin, xmax] with the function func(x, param),
    using "samples" bootstrap samples to evaluate the errors.
@@ -42,8 +42,11 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
    the value of chi^2,the number of dof, the p-value
    and the bootstrap samples of the parameters.
    """
-      
+   
    mask = ((x<=xmax) & (x>=xmin))
+   x_total_range=x
+   xmintr = x_total_range[0]
+   xmaxtr = x_total_range[-1]
    x=x[mask]
    y=y[mask]
    dy=dy[mask]
@@ -58,7 +61,11 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
    if plot_band==1:
      x_band=np.linspace(xmin, xmax, band_size)
      boot_band=np.empty((band_size, samples), dtype=np.float64)
-          
+     
+     x_band_tr=np.linspace(xmintr, xmaxtr, band_size)
+     boot_band_tr=np.empty((band_size, samples), dtype=np.float64)
+
+     
    for i in range(samples): 
      if show_progressbar==1:
        pb.progress_bar(i, samples)
@@ -72,7 +79,11 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
 
      if plot_band==1:
        boot_band[:,i]=func(x_band, ris[0])
-      
+     
+     if plot_band==1 and plot_fit_total_range==1: 
+       boot_band_tr[:,i]=func(x_band_tr, ris[0])
+
+
    # optimal parameters and errors
    ris=np.mean(boot_sample, axis=1)
    err=np.std(boot_sample, axis=1, ddof=1)
@@ -83,23 +94,52 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
    dof=data_length - len(params)
    pvalue=1.0 - stats.chi2.cdf(chi2, dof)
 
+
    if plot_fit==1:
      x_aux=np.linspace(xmin, xmax, 1000)
      y_aux=func(x_aux, ris)
 
-     plt.figure('Best fit (chi2/dof=%.4f/%d=%f)' % (chi2, dof, chi2/dof))
+     plt.figure('Best fit (chi2/dof=%.4f/%d=%f)' % (chi2, dof, chi2/dof), figsize = (16,12))
      plt.xlim(0.9*xmin, 1.1*xmax)
-     plt.errorbar(x, y, yerr=dy, fmt='ob', ms=5)
-     plt.plot(x_aux,y_aux,'r-')
+     plt.errorbar(x, y, yerr=dy, **plot.data(1))
+     plt.plot(x_aux,y_aux,**plot.fit(1))
       
      if plot_band==1:
        band_mean=np.mean(boot_band, axis=1)
        band_std=np.std(boot_band, axis=1)
-       plt.plot(x_band, band_mean + band_std,'g-')
-       plt.plot(x_band, band_mean - band_std,'g-')
-
+       plt.fill_between(x_band, band_mean - band_std, band_mean + band_std, **plot.conf_band(1))
+      
+     plt.xticks(rotation=0)
+     plt.yticks(rotation=0)
+     
+     plt.grid(True, which='both', linestyle='--', linewidth=0.25)
+    
      if save_figs==1:
-       plt.savefig('fit.png')
+       plt.savefig('fit.png', dpi=400, bbox_inches='tight')
+     else:
+       plt.show()
+
+   if plot_fit_total_range==1:
+     x_aux=np.linspace(xmintr, xmaxtr, 1000)
+     y_aux=func(x_aux, ris)
+
+     plt.figure('Best fit (chi2/dof=%.4f/%d=%f)' % (chi2, dof, chi2/dof), figsize = (16,12))
+     plt.xlim(0.9*xmintr, 1.1*xmaxtr)
+     plt.errorbar(x, y, yerr=dy, **plot.data(1))
+     plt.plot(x_aux,y_aux,**plot.fit(1))
+      
+     if plot_band==1:
+       band_mean_tr=np.mean(boot_band_tr, axis=1)
+       band_std_tr=np.std(boot_band_tr, axis=1)
+       plt.fill_between(x_band_tr, band_mean_tr - band_std_tr, band_mean_tr + band_std_tr, **plot.conf_band(1))
+      
+     plt.xticks(rotation=0)
+     plt.yticks(rotation=0)
+     
+     plt.grid(True, which='both', linestyle='--', linewidth=0.25)
+    
+     if save_figs==1:
+       plt.savefig('fit.png', dpi=400, bbox_inches='tight')
      else:
        plt.show()
 
@@ -137,13 +177,13 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
  
 def fit_yerr_uncorrelated(func, x, y, d_y, bsamples, \
                           maskfit, maskplot, rangeplot, plotabstract=0, \
-                            kwargs1=None, kwargs2=None, kwargs3=None, kwargs4=None):
+                            kwargs1=None, kwargs2=None, kwargs3=None, kwargs4=None, label=None):
   """
   Perform a fit to data on [xmin, xmax] with the function func(x, param),
   using "samples" bootstrap samples to evaluate the errors.
 
-  maskfit: [start,end] mask to be applied to x for fitting
-  masplot: [start,end] mask to be applied to x for plotting
+  maskfit: [start,end) mask to be applied to x for fitting
+  masplot: [start,end) mask to be applied to x for plotting
   rangeplot: [start,end] float(x) range on which fitline and conf band are plotted
   kwargs1: for curve_fit
   kwargs2: for errorbar
@@ -164,12 +204,17 @@ def fit_yerr_uncorrelated(func, x, y, d_y, bsamples, \
   
   opt, cov = curve_fit(func, xfit, yfit, sigma=d_yfit, absolute_sigma=True, **kwargs1)
   
+  residuals = yfit - func(xfit, *opt)
+    
+  chi2red = np.sum((residuals/d_yfit)**2)/(len(xfit) - len(opt))
+  
   bandsize = 1000
   xband = np.linspace(rangeplot[0], rangeplot[-1], bandsize)
   
   boot_opt = []
   boot_cov = []
   boot_band = []
+  chi_boot = []
   for sample in range(np.shape(bsamplesplot)[0]):
     aux = bsamplesfit[sample,:]
     
@@ -186,13 +231,13 @@ def fit_yerr_uncorrelated(func, x, y, d_y, bsamples, \
     plt.figure(figsize=(16,12))
 
   plt.errorbar(xplot, yplot, d_yplot, **kwargs2)
-  plt.plot(xband, func(xband, *opt), **kwargs3)
+  plt.plot(xband, func(xband, *opt), **kwargs3, label=label)
   plt.fill_between(xband, band_mean-band_std, band_mean+band_std, **kwargs4)
 
   if plotabstract==0:
     plt.show()
   
-  return opt, cov, boot_opt, boot_cov
+  return opt, cov, boot_opt, boot_cov, chi2red
   
 
 def _residuals_xyerr(extended_params, x, dx, y, dy, true_param_length, func):
