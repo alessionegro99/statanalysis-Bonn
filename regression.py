@@ -123,7 +123,7 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
      plt.grid(True, which='both', linestyle='--', linewidth=0.25)
     
      if save_figs==1:
-       plt.savefig(f'{save_path}/fit.png', dpi=400, bbox_inches='tight')
+       plt.savefig(f'{save_path}/fit.png', dpi=300, bbox_inches='tight')
      else:
        plt.show()
 
@@ -147,7 +147,7 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
      plt.grid(True, which='both', linestyle='--', linewidth=0.25)
     
      if save_figs==1:
-       plt.savefig(f'{save_path}/fit.png', dpi=400, bbox_inches='tight')
+       plt.savefig(f'{save_path}/fit.png', dpi=300, bbox_inches='tight')
      else:
        plt.show()
 
@@ -184,7 +184,7 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
          plt.show()
 
    return ris, err, chi2, dof, pvalue, boot_sample
- 
+
  ## to do: modify and use this only for the correlated fits
 def fit_yerr_uncorrelated(func, x, y, d_y, bsamples, \
                           maskfit, maskplot, rangeplot, plotabstract=0, \

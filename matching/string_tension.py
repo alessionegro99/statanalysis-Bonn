@@ -108,8 +108,7 @@ def blocksize_analysis_secondary(path):
 
     plt.grid(True, which='both', linestyle='--', linewidth=0.25)
     plt.savefig(f"{path}/analysis/blocksize_analysis_secondary.png", dpi=300, bbox_inches='tight')
-        
-    
+          
 def plot_potential_Wilsont(path, savefig=0):
     data = readfile(path)
     
@@ -322,7 +321,6 @@ def plot_fit_potential_ws(path, savefig=0):
     x_file = np.arange(1,11)
     data = np.column_stack((x_file, np.array(V_0_file), np.array(d_V_0_file), np.array(b_file), np.array(d_b_file), np.array(chi2red_file)))
 
-    # Save to a file without a header
     np.savetxt(f"{path}/analysis/output.txt", data)
 
 def plot_fit_potential_ws_CB(path, savefig=0):
@@ -402,9 +400,6 @@ def plot_fit_potential_ws_CB(path, savefig=0):
         
     data = np.column_stack((ws+1, np.array(V_0_file), np.array(d_V_0_file), np.array(b_file), np.array(d_b_file), np.array(chi2red_file)))
     
-    print(data)
-
-    # Save to a file without a header
     np.savetxt(f"{path}/analysis/extrapolation/ws_{ws+1}/fit_results.txt", data)
 
 def concatenate_fit_files(path):
@@ -423,7 +418,7 @@ def fit_plot_Cornell(path):
     columns = [output[:, i] for i in range(output.shape[1])]
     
     def Cornell(x, pars):
-        return pars[0] + pars[1]*x + pars[2]/x
+        return pars[0] + pars[1]*x - pars[2]/x
     
     x=columns[0]
     y=columns[1]
@@ -433,15 +428,15 @@ def fit_plot_Cornell(path):
     
     fitparams=np.array([0.1, 1., 1.2], dtype=np.float64)
             
-    ris, err, chi2, dof, pvalue, boot_sample = reg.fit_with_yerr(x, y, dy, 4, 8, Cornell, fitparams, numsamples,\
-                                                                    save_figs=1, save_path=f'{path}/analysis'\
+    ris, err, chi2, dof, pvalue, boot_sample = reg.fit_with_yerr(x, y, dy, 3, 8, Cornell, fitparams, numsamples,\
+                                                                    save_figs=1, save_path=f'{path}/regression/analysis/Cornell'\
                                                                     , plot_title = fr'$aV(w_s)$ for $\beta = 1.7, N_s = 42, N_t = 42$', xlab = r'$w_t$', ylab = r'$aV(w_t)$')
     print("  chi^2/dof = {:3.3f}/{:d} = {:3.3f}".format(chi2, dof, chi2/dof))
     print("  p-value = %f" % pvalue)
     print()
     print("  alfa = {: f} +- {:f}".format(ris[0], err[0]) ) 
     print("  sigma = {: f} +- {:f}".format(ris[1], err[1]) )
-    print("  beta = {: f} +- {:f}".format(ris[2], err[2]) ) 
+    print("  c = {: f} +- {:f}".format(ris[2], err[2]) ) 
     print()    
 
 if __name__ == "__main__":
