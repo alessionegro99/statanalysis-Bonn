@@ -24,8 +24,8 @@ def _residuals_yerr(params, x, y, dy, func):
 
 
 def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
-   stop_param=1.0e-15, plot_fit=1, plot_fit_total_range=1, plot_band=1, \
-  plot_residuals=1, plot_distribution=1, save_figs=0, show_progressbar=1):
+   stop_param=1.0e-15, plot_fit=1, plot_fit_total_range=0, plot_band=1, \
+  plot_residuals=1, plot_distribution=1, save_figs=0, save_path = 'null', show_progressbar=1, plot_title='myplot', xlab='x', ylab='y'):
    """
    Perform a fit to data on [xmin, xmax] with the function func(x, param),
    using "samples" bootstrap samples to evaluate the errors.
@@ -64,7 +64,6 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
      
      x_band_tr=np.linspace(xmintr, xmaxtr, band_size)
      boot_band_tr=np.empty((band_size, samples), dtype=np.float64)
-
      
    for i in range(samples): 
      if show_progressbar==1:
@@ -100,6 +99,15 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
      y_aux=func(x_aux, ris)
 
      plt.figure('Best fit (chi2/dof=%.4f/%d=%f)' % (chi2, dof, chi2/dof), figsize = (16,12))
+     
+     plt.xticks(rotation=0)  
+     plt.yticks(rotation=0) 
+     
+     plt.xlabel(xlab)
+     plt.ylabel(ylab, rotation=0)
+     plt.gca().yaxis.set_label_coords(-0.1, 0.5)
+     plt.title(plot_title)
+     
      plt.xlim(0.9*xmin, 1.1*xmax)
      plt.errorbar(x, y, yerr=dy, **plot.data(1))
      plt.plot(x_aux,y_aux,**plot.fit(1))
@@ -115,7 +123,7 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
      plt.grid(True, which='both', linestyle='--', linewidth=0.25)
     
      if save_figs==1:
-       plt.savefig('fit.png', dpi=400, bbox_inches='tight')
+       plt.savefig(f'{save_path}/fit.png', dpi=400, bbox_inches='tight')
      else:
        plt.show()
 
@@ -139,7 +147,7 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
      plt.grid(True, which='both', linestyle='--', linewidth=0.25)
     
      if save_figs==1:
-       plt.savefig('fit.png', dpi=400, bbox_inches='tight')
+       plt.savefig(f'{save_path}/fit.png', dpi=400, bbox_inches='tight')
      else:
        plt.show()
 
@@ -147,9 +155,10 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
      x_aux=np.linspace(xmin, xmax, 1000)
      y_aux=np.ones(len(x_aux))
 
-     plt.figure('Residuals')
+     plt.figure('Residuals', figsize=(16,12))
+     plt.grid(True, which='both', linestyle='--', linewidth=0.25)
      plt.xlim(0.9*xmin, 1.1*xmax)
-     plt.errorbar(x, opt_res, yerr=1, fmt='ob', ms=5)
+     plt.errorbar(x, opt_res, yerr=1, **plot.data(1))
      plt.plot(x_aux, -2*y_aux, 'g:')
      plt.plot(x_aux, -y_aux, 'r--')
      plt.plot(x_aux, 0*y_aux, 'r-')
@@ -157,55 +166,46 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
      plt.plot(x_aux, 2*y_aux, 'g:')
      
      if save_figs==1:
-       plt.savefig('residuals.png')
+       plt.savefig(f'{save_path}/residuals.png')
      else:
        plt.show()
 
    if plot_distribution==1:
      for i in range(len(params)):
-       plt.figure('Bootstrapped distribution of param[%d]' % i)
+       plt.figure('Bootstrapped distribution of param[%d]' % i, figsize=(16,12))
+       plt.grid(True, which='both', linestyle='--', linewidth=0.25)
        plt.xlabel('param[%d] values' % i)
        plt.ylabel('distribution histogram')
        plt.hist(boot_sample[i], bins='auto')
        
        if save_figs==1:
-         plt.savefig('param'+str(i)+'.png')
+         plt.savefig(f'{save_path}/param'+str(i)+'.png')
        else:
          plt.show()
 
    return ris, err, chi2, dof, pvalue, boot_sample
  
+ ## to do: modify and use this only for the correlated fits
 def fit_yerr_uncorrelated(func, x, y, d_y, bsamples, \
                           maskfit, maskplot, rangeplot, plotabstract=0, \
                             kwargs1=None, kwargs2=None, kwargs3=None, kwargs4=None, label=None):
-  """
-  Perform a fit to data on [xmin, xmax] with the function func(x, param),
-  using "samples" bootstrap samples to evaluate the errors.
-
-  maskfit: [start,end) mask to be applied to x for fitting
-  masplot: [start,end) mask to be applied to x for plotting
-  rangeplot: [start,end] float(x) range on which fitline and conf band are plotted
-  kwargs1: for curve_fit
-  kwargs2: for errorbar
-  kwargs3: for plot
-  kwargs4: for confidence band
-
-  return opt, cov and bootstrapped opt and cov.
-  """
+  # masking for fitting
   xfit=x[maskfit[0]:maskfit[1]]
   yfit=y[maskfit[0]:maskfit[1]]
   d_yfit=d_y[maskfit[0]:maskfit[1]]
   bsamplesfit=bsamples[:,maskfit[0]:maskfit[1]]
   
+  # masking for plotting
   xplot=x[maskplot[0]:maskplot[1]]
   yplot=y[maskplot[0]:maskplot[1]]
   d_yplot=d_y[maskplot[0]:maskplot[1]]
   bsamplesplot=bsamples[:,maskplot[0]:maskplot[1]]
   
+  # performing uncorrelated fit on the original data
   opt, cov = curve_fit(func, xfit, yfit, sigma=d_yfit, absolute_sigma=True, **kwargs1)
   
+  # computing the reduced chi2 on the original data
   residuals = yfit - func(xfit, *opt)
-    
   chi2red = np.sum((residuals/d_yfit)**2)/(len(xfit) - len(opt))
   
   bandsize = 1000
@@ -214,7 +214,9 @@ def fit_yerr_uncorrelated(func, x, y, d_y, bsamples, \
   boot_opt = []
   boot_cov = []
   boot_band = []
-  chi_boot = []
+  boot_chi2red = []
+  
+  # bootstrapping the fit
   for sample in range(np.shape(bsamplesplot)[0]):
     aux = bsamplesfit[sample,:]
     
@@ -237,7 +239,7 @@ def fit_yerr_uncorrelated(func, x, y, d_y, bsamples, \
   if plotabstract==0:
     plt.show()
   
-  return opt, cov, boot_opt, boot_cov, chi2red
+  return opt, cov, chi2red, boot_opt, boot_cov
   
 
 def _residuals_xyerr(extended_params, x, dx, y, dy, true_param_length, func):

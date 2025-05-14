@@ -38,6 +38,7 @@ def bootstrap_for_primary(func, vec_in, block, samples, seed=None):
   # cut vec_in to have a number of columns multiple of "block" and apply "func" 
   data=func(vec_in[:end])   
 
+  # get the average on the blocks
   block_sum_data=bs.blocksum(data, block)/np.float64(block)
 
   # generate bootstrap samples
@@ -130,9 +131,6 @@ def blocksize_analysis_primary(vec_in, samples, block_vec, savefig=0, path=None)
   "block_vec" is a vector 
   [blocksize_min,blocksize_max,blocksize_step]
   """
-  def id(x):
-    return x
-  
   err = []
   d_err = []
   
@@ -148,18 +146,18 @@ def blocksize_analysis_primary(vec_in, samples, block_vec, savefig=0, path=None)
 
     block_sum_data=bs.blocksum(data, block)/np.float64(block)
     
-    # estimator for the mean of the average for blocksize=block
+    # estimator for the standard error for blocksize=block
     err.append(np.std(block_sum_data)/numblocks**0.5)
   
     tmp = []
     
     for sample in range(samples):  
       resampling = np.random.randint(0,numblocks,size=numblocks)
-      # compute the mean of the average on each of the bootstrap samples
+      # compute the standard error on each of the bootstrap samples
       tmp.append(np.std(block_sum_data[resampling])/numblocks**0.5)
     
-    # the error on the mean of the average is the stdev of the mean of the average
-    # computed on the bootstrap samples
+    # the error on the standard error is the standard deviation on the
+    # bootstrap samples of the standard error
     d_err.append(np.std(tmp))
         
   plt.figure(figsize=(16,12))
@@ -169,8 +167,8 @@ def blocksize_analysis_primary(vec_in, samples, block_vec, savefig=0, path=None)
                 color=plot.color_dict[1])
     
   plt.xlabel(r'$K$')
-  plt.ylabel(r'$\sigma_{\overline{F(x)}}$', rotation=0)
-  plt.title("Standard deviation of the mean as a function of the blocksize.")
+  plt.ylabel(r'$\overline{\sigma}_{\overline{F^{(K)}}}$', rotation=0)
+  plt.title("Standard error as a function of the blocksize.")
   plt.gca().yaxis.set_label_coords(-0.1, 0.5)
 
   plt.grid(True, which='both', linestyle='--', linewidth=0.25)
@@ -217,6 +215,7 @@ if __name__=="__main__":
 
   print("average = %f" % ris)
   print("    err = %f" % err)
+  print("    std = %f" % (np.std(test_noauto)/len(test_noauto)**0.5))
   print()
 
   # test for secondary
