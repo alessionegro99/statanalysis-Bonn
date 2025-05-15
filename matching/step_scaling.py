@@ -140,6 +140,10 @@ def plot_potential_wt(path, savefig=0):
             d_V.append(err)
         
         plt.errorbar(wsplot, V, d_V, **plot.data(wt), label=fr'$w_t={wt+1}$')
+        
+        tofile = np.column_stack((np.array(wsplot), np.array(V), np.array(d_V)))
+
+        np.savetxt(f"{path}/analysis/potential_wt/potential_wt_{wt+1}.txt", tofile)
           
     plt.xlabel(r'$w_s$')
     plt.ylabel(r'$aV(w_s)$', rotation=0)
@@ -158,40 +162,21 @@ def plot_potential_wt(path, savefig=0):
         plt.savefig(f"{path}/analysis/potential_wt.png", dpi=300, bbox_inches='tight')
         
 def plot_potential_ws(path, savefig=0): ## prendere dati da file
-    data = readfile(path)
-    
-    def id(x):
-        return x
-    
-    seed = 8220
-    samples = 500
-    blocksizes = [50, 50, 50]
-    
-    wtmax = 10
     wsmax = 3
     
     wtmaxplot = 6
     wsplot = [1, np.sqrt(5), np.sqrt(8)]
-    
+        
     plt.figure(figsize=(16,12))    
-    for ws, blocksize in zip(range(wsmax), blocksizes):
+    for ws in range(wsmax):
         V = []
         d_V = []
         
         for wt in range(wtmaxplot):
-            W = data[:, 2 + wt + wtmax*ws]
-            
-            def potential(x):
-                eps=1e-10
-                return -np.log(np.clip(x, eps, None))/(wt+1)
+            V_tmp, d_V_tmp = np.loadtxt(f"{path}/analysis/potential_wt/potential_wt_{wt+1}.txt", usecols=(1,2), unpack=True)
 
-            args = [id, W]
-                    
-            print(f"bootstrapping w_t={wt}, w_s={ws}")
-            ris, err = boot.bootstrap_for_secondary(potential, blocksize, samples, 1, args, seed=seed)
-            V.append(ris) ## no
-            
-            d_V.append(err)
+            V.append(V_tmp[ws])
+            d_V.append(d_V_tmp[ws])
         
         plt.errorbar(1/np.arange(1,wtmaxplot+1), V, d_V, **plot.data(ws), label=fr'$w_s={wsplot[ws]:.2f}$')
         
@@ -211,29 +196,16 @@ def plot_potential_ws(path, savefig=0): ## prendere dati da file
     elif savefig==1:
         plt.savefig(f"{path}/analysis/potential_ws.png", dpi=300, bbox_inches='tight')
 
-def plot_fit_potential_ws(path, ws, savefig=0): ## prendere dati da file
-    data = readfile(path)
-    
-    # for the bootstrapping of <W(wt,ws)>
-    def id(x): 
-        return x
-    
+def plot_fit_potential_ws(path, ws, savefig=0): ## prendere dati da file    
     # for fitting aV(wt,ws) for small wt
     def ansatz(x, pars):
         return pars[0] + pars[1]/x
     
-    # seed for the bootstrapping procedure to keep cross correlation intact
-    seed = 8220
-    
     # samples for bootstrapping
     samples = 500
-    # blocksize for blocked bootstrap
-    blocksize = 1000
+
     # initial guess of parameters
     params = [1,1]         
-    
-    # total number of different wt measured
-    wtmax = 10
     
     # max wt used for extrapolating
     wtmaxplot = 6
@@ -251,27 +223,16 @@ def plot_fit_potential_ws(path, ws, savefig=0): ## prendere dati da file
     d_y = []
                 
     for wt in range(wtmaxplot):
-            pb.progress_bar(wt, wtmax)
-            W = data[:, 2 + wt + wtmax*ws]
+        V_tmp, d_V_tmp = np.loadtxt(f"{path}/analysis/potential_wt/potential_wt_{wt+1}.txt", usecols=(1,2), unpack=True)
             
-            args = [id, W]
-            
-            # aV(wt,ws) = -1/wt*log(<W(wt,ws)>)
-            def potential(x):
-                eps=1e-10
-                return -np.log(np.clip(x, eps, None))/(wt+1)
-            
-            # computing ris and err for aV(wt,ws)
-            ris, err = boot.bootstrap_for_secondary(potential, blocksize, samples, 0, args, seed=seed, returnsamples=0)
-            
-            y_t0.append(potential(np.mean(W))) # on the original data
-            d_y.append(err)
+        y_t0.append(V_tmp[ws]) # on the original data
+        d_y.append(d_V_tmp[ws])
         
     x = np.arange(1, wtmaxplot+1)
     y_t0 = np.array(y_t0)
     d_y = np.array(d_y)           
     
-    ris, err, chi2, dof, pvalue, boot_sample = reg.fit_with_yerr(x, y_t0, d_y, 3, 6, ansatz, params, samples \
+    ris, err, chi2, dof, pvalue, boot_sample = reg.fit_with_yerr(x, y_t0, d_y, 3, 5, ansatz, params, samples \
                                                                     , save_figs=1, save_path=f'{path}/analysis/extrapolation/ws_{wsplot[ws]:.2f}'\
                                                                     , plot_title = fr'$aV(w_t, w_s={wsplot[ws]})$ for $\beta=1.4, N_s=3, N_t=42$', xlab = r'$w_t$', ylab = r'$aV(w_t)$')
                 
@@ -285,17 +246,80 @@ def plot_fit_potential_ws(path, ws, savefig=0): ## prendere dati da file
     
     np.savetxt(f"{path}/analysis/extrapolation/ws_{wsplot[ws]:.2f}/fit_results.txt", data)
 
-if __name__ == "__main__":
-    path = "/home/negro/projects/matching/step_scaling/T42_L3_b1.4"
+def compute_r2F(path):
+    # for fitting aV(wt,ws) for small wt
+    def ansatz(x, pars):
+        return pars[0] + pars[1]/x
     
-    #concatenate.concatenate(f"{path}/data", 100)
+    # samples for bootstrapping
+    samples = 500
+
+    # initial guess of parameters
+    params = [1,1]         
+    
+    # max wt used for extrapolating
+    wtmaxplot = 6
+        
+    wsplot = [1, np.sqrt(5), np.sqrt(8)]
+    
+    x = np.arange(1, wtmaxplot+1)
+
+    V_r = []
+    boot_V_r = []
+    for ws in range(len(wsplot)):
+        y_t0 = []
+        d_y = []
+        for wt in range(wtmaxplot):
+            V_tmp, d_V_tmp = np.loadtxt(f"{path}/analysis/potential_wt/potential_wt_{wt+1}.txt", usecols=(1,2), unpack=True)
+                
+            y_t0.append(V_tmp[ws])
+            d_y.append(d_V_tmp[ws])
+            
+        y_t0 = np.array(y_t0)
+        d_y = np.array(d_y)           
+        
+        ris, err, chi2, dof, pvalue, boot_sample = reg.fit_with_yerr(x, y_t0, d_y, 3, 5, ansatz, params, samples, save_figs=0, plot_fit=0, plot_residuals=0, plot_distribution=0)
+        
+        V_r.append(ris[0])
+        boot_V_r.append(boot_sample[0,:])
+
+    boot_V_r = np.column_stack(boot_V_r)
+
+    r2F_r1 = wsplot[0]**2*(V_r[1]-V_r[0])/(wsplot[1]-wsplot[0])
+    r2F_r2 = wsplot[1]**2*(V_r[2]-V_r[1])/(wsplot[2]-wsplot[1])
+    
+    boot_r2F_r1 = wsplot[0]**2*(boot_V_r[:,1]-boot_V_r[:,0])/(wsplot[1]-wsplot[0])
+    boot_r2F_r2 = wsplot[1]**2*(boot_V_r[:,2]-boot_V_r[:,1])/(wsplot[2]-wsplot[1])
+    
+    d_r2F_r1 = np.std(boot_r2F_r1, ddof=1)
+    d_r2F_r2 = np.std(boot_r2F_r2, ddof=1)
+    
+    print(r2F_r1, d_r2F_r1)
+    print(r2F_r2, d_r2F_r2)
+    
+    plt.figure(figsize=(16,12))
+    plt.errorbar(np.array([1.4, 1.4]), [r2F_r1, r2F_r2], [d_r2F_r1, d_r2F_r2], **plot.data(0))
+    plt.show()
+
+
+if __name__ == "__main__":
+    path = "/home/negro/projects/matching/step_scaling/T42_L3_b1.7"
+    
+    concatenate.concatenate(f"{path}/data", 100)
     
     #thermalization_plaqt(path)
     
     #blocksize_analysis_primary(path)
     #blocksize_analysis_secondary(path)
     
-    #plot_potential_Wilsont(path, 1)
+    #plot_potential_wt(path, 1)
     
     #plot_potential_ws(path, 1)
-    plot_fit_potential_ws(path, 0, 1)
+    #plot_fit_potential_ws(path, 2, 1)
+    
+    #compute_r2F(path)
+    
+    
+    
+    
+    
