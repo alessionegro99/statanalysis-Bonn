@@ -87,8 +87,6 @@ def _tominimize(energyfunc, lzetacut, stuff):
 
   return np.array(lzetanew)[1:]-lzetacut
 
-
-
 def computelzeta(energyfunc, stuff, *args):
   """
   Compute the log of the partition functions in a self-consistent way
@@ -159,8 +157,6 @@ def computelzeta(energyfunc, stuff, *args):
   sys.stdout.flush()
 
   return lzeta
-
-
 
 def jack_for_primary(func, param, energyfunc, lzeta, stuff):
   """
@@ -343,32 +339,32 @@ if __name__=="__main__":
   print("UNIT TESTING")
   print()
 
-  #indata=np.loadtxt("dati_2.26.dat", skiprows=500, dtype=np.float)
-  #data226=np.transpose(indata)     #column ordered
+  indata=np.loadtxt("dati_1.4.dat", skiprows=90000, dtype=np.float64)
+  data14=np.transpose(indata)     #column ordered
 
-  #indata=np.loadtxt("dati_2.27.dat", skiprows=500, dtype=np.float)
-  #data227=np.transpose(indata)     #column ordered
+  indata=np.loadtxt("dati_1.7.dat", skiprows=90000, dtype=np.float64)
+  data17=np.transpose(indata)     #column ordered
 
-  #indata=np.loadtxt("dati_2.28.dat", skiprows=500, dtype=np.float)
-  #data228=np.transpose(indata)     #column ordered
+  indata=np.loadtxt("dati_3.dat", skiprows=90000, dtype=np.float64)
+  data3=np.transpose(indata)     #column ordered
 
-  #def energy(vec):
-  #  return 6*4*8**3*(1-(vec[0]+vec[1])/2)
+  def energy(vec):
+   return 42*2**2*(1-vec[0]-2*vec[1])#42*3**2*(1-(vec[0]+vec[1])/2) #6*4*8**3
 
-  #def plaq(vec):
-  #  return (vec[0]+vec[1])/2.0
+  def plaq(vec):
+   return vec[0]+2*vec[1]#return (vec[0]+vec[1])/2.0
 
-  #def squareplaq(vec):
-  #  return (vec[0]+vec[1])*(vec[0]+vec[1])/4.0
+  def squareplaq(vec):
+   return (vec[0]+vec[1])*(vec[0]+vec[1])/4.0
 
-  #def susc(v):
-  #  return v[0]-v[1]*v[1]
+  def susc(v):
+   return v[0]-v[1]*v[1]
 
-  #stuff=[[2.26, data226, 20], [2.27, data227, 20], [2.28, data228, 20]]
+  stuff=[[1.4, data14, 100], [1.7, data17, 100], [3, data3, 100]]
 
-  #multihisto_for_primary(2.26, 2.28, 20, energy, plaq, stuff)
+  multihisto_for_primary(1.4, 3, 20, energy, plaq, stuff)
 
-  #multihisto_for_secondary(2.26, 2.28, 20, energy, susc, [squareplaq, plaq], stuff)
+  #multihisto_for_secondary(1.4, 3, 100, energy, susc, [squareplaq, plaq], stuff)
 
   print("**********************")
 
