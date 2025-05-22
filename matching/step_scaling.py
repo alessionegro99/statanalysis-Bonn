@@ -39,7 +39,7 @@ def thermalization_plaqt(path):
     plt.xlabel(r'$t_i$')
     plt.ylabel(r'$U_t(t_i)$', rotation = 0)
     plt.gca().yaxis.set_label_coords(-0.1, 0.5)
-    plt.title(r'MC history of temporal plaquette $U_t$ for $\beta=4$, $N_t=42$, $N_s=4$.')
+    plt.title(r'MC history of temporal plaquette $U_t$ for $\beta=4.19$, $N_t=42$, $N_s=4$.')
             
     plt.xticks(rotation=0)  
     plt.yticks(rotation=0) 
@@ -119,7 +119,7 @@ def plot_potential_wt(path, savefig=0):
     wsmax = 3
     
     wtmaxplot = 10
-    wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(32)]
+    wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
     
     plt.figure(figsize=(16,12))    
     for wt in range(wtmaxplot):
@@ -135,23 +135,24 @@ def plot_potential_wt(path, savefig=0):
                 eps=1e-10
                 return -np.log(np.clip(x, eps, None))/(wt+1)
             
-            print(f"Currently bootstrapping w_t={wt}, w_s={ws}...")
+            print(f"Currently bootstrapping w_t={wt+1}, w_s={wsplot[ws]:.2f}...")
             ris, err = boot.bootstrap_for_secondary(potential, blocksize, samples, 1, args, seed=seed)
-            sys.stdout.flush()
             
             V.append(potential(np.mean(W)))
             d_V.append(err)
         
+        sys.stdout.flush()
+
         plt.errorbar(wsplot, V, d_V, **plot.data(wt), label=fr'$w_t={wt+1}$')
-        
+
         tofile = np.column_stack((np.array(wsplot), np.array(V), np.array(d_V)))
 
         np.savetxt(f"{path}/analysis/potential_wt/potential_wt_{wt+1}.txt", tofile)
-          
+        
     plt.xlabel(r'$w_s$')
     plt.ylabel(r'$aV(w_s)$', rotation=0)
     plt.gca().yaxis.set_label_coords(-0.1, 0.5)
-    plt.title(r'$aV(w_t, w_s)$ for $\beta=4, N_s=4, N_t=42$')
+    plt.title(r'$aV(w_t, w_s)$')
             
     plt.xticks(rotation=0)  
     plt.yticks(rotation=0) 
@@ -168,9 +169,11 @@ def plot_potential_ws(path, savefig=0):
     wsmax = 3
     
     wtmaxplot = 10
-    wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(32)]
-
+    
     #wsplot = [1, np.sqrt(5), np.sqrt(8)]
+    #wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
+    wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
+
         
     plt.figure(figsize=(16,12))    
     for ws in range(wsmax):
@@ -188,7 +191,7 @@ def plot_potential_ws(path, savefig=0):
     plt.xlabel(r'$1/w_t$')
     plt.ylabel(r'$aV(w_t)$', rotation=0)
     plt.gca().yaxis.set_label_coords(-0.1, 0.5)
-    plt.title(r'$aV(w_t, w_s)$ for $\beta = 7.3, N_s = 4, N_t = 42$')
+    plt.title(r'$aV(w_t, w_s)$')
             
     plt.xticks(rotation=0)  
     plt.yticks(rotation=0) 
@@ -201,7 +204,7 @@ def plot_potential_ws(path, savefig=0):
     elif savefig==1:
         plt.savefig(f"{path}/analysis/potential_ws.png", dpi=300, bbox_inches='tight')
 
-def plot_fit_potential_ws(path, ws, xmin, xmax, savefig=0):
+def plot_fit_potential_ws(path, ws, xmin, xmax):
     # for fitting aV(wt,ws) for small wt
     def ansatz(x, pars):
         return pars[0] + pars[1]/x
@@ -216,8 +219,9 @@ def plot_fit_potential_ws(path, ws, xmin, xmax, savefig=0):
     wtmaxplot = 10
         
     #wsplot = [1, np.sqrt(5), np.sqrt(8)]
-    wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(32)]
-    
+    #wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
+    wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
+
     # stuff that gets printed to file
     V_0_file = []
     d_V_0_file = []
@@ -256,8 +260,9 @@ def plot_fit_potential_ws(path, ws, xmin, xmax, savefig=0):
     np.savetxt(f"{path}/analysis/extrapolation/ws_{wsplot[ws]:.2f}/fit_results_boot_samples.txt", boot_sample)
 
 def compute_r2F(path):
-    wsplot = [1, np.sqrt(5), np.sqrt(8)]
-    #wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(32)]
+    #wsplot = [1, np.sqrt(5), np.sqrt(8)]
+    #wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
+    wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
 
     V_r = []
     boot_V_r = []
@@ -279,14 +284,58 @@ def compute_r2F(path):
     d_r2F_r1 = np.std(boot_r2F_r1, ddof=1)
     d_r2F_r2 = np.std(boot_r2F_r2, ddof=1)
     
-    print(r2F_r1, r2F_r2)
+    data = np.column_stack((np.array([wsplot[0], wsplot[1]]), np.array([r2F_r1, r2F_r2]), np.array([d_r2F_r1, d_r2F_r2])))
     
+    np.savetxt(f"{path}/analysis/r2F.txt", data)
+    
+def tune_r2F():
+    Ns_list=[4, 5]
+    
+    betas_list = [[4, 4.05, 4.15, 4.25], [10]]
+
     plt.figure(figsize=(16,12))
-    plt.errorbar(np.array([7.3, 7.3]), [r2F_r1, r2F_r2], [d_r2F_r1, d_r2F_r2], **plot.data(0))
+
+    r = []
+    r2F=[]
+    d_r2F=[]
+    
+    path = f"/home/negro/projects/matching/step_scaling/T42_L3_b3"
+    
+    tmp1, tmp2, tmp3 = np.loadtxt(f"{path}/analysis/r2F.txt", usecols=(0,1,2), unpack=True)
+    r.append(tmp1)
+    r2F.append(tmp2)
+    d_r2F.append(tmp3)
+    
+    r = np.column_stack(r)
+    r2F = np.column_stack(r2F)
+    d_r2F = np.column_stack(d_r2F)
+    
+    plt.errorbar(3, r2F[1, :], d_r2F[1,:], **plot.data(0))
+
+    for count, Ns in enumerate(Ns_list):
+        r = []
+        r2F=[]
+        d_r2F=[]
+                
+        betas = betas_list[count]
+        for beta in betas:
+            path = f"/home/negro/projects/matching/step_scaling/T42_L{Ns}_b{beta}"
+            
+            tmp1, tmp2, tmp3 = np.loadtxt(f"{path}/analysis/r2F.txt", usecols=(0,1,2), unpack=True)
+            r.append(tmp1)
+            r2F.append(tmp2)
+            d_r2F.append(tmp3)
+    
+        r = np.column_stack(r)
+        r2F = np.column_stack(r2F)
+        d_r2F = np.column_stack(d_r2F)
+        
+
+        plt.errorbar(betas, r2F[1, :], d_r2F[1,:], **plot.data(count+1))
     plt.show()
 
 if __name__ == "__main__":
-    path = "/home/negro/projects/matching/step_scaling/T42_L4_b4"
+    path = "/home/negro/projects/matching/step_scaling/T42_L5_b10"
     
     #concatenate.concatenate(f"{path}/data", 100)
     
@@ -295,13 +344,13 @@ if __name__ == "__main__":
     #blocksize_analysis_primary(path)
     #blocksize_analysis_secondary(path)
     
-    plot_potential_wt(path, 1)
+    #plot_potential_wt(path, 1)
     
     #plot_potential_ws(path, 1)
-    #plot_fit_potential_ws(path, 0, 4, 10, 1)
+    #plot_fit_potential_ws(path, 2, 6, 10)
     
-    #compute_r2F(path)
-    
+    compute_r2F(path)    
+    tune_r2F()
     
     
     

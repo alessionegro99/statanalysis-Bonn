@@ -338,21 +338,23 @@ if __name__=="__main__":
   print("**********************")
   print("UNIT TESTING")
   print()
+  
+  path = '/home/negro/projects/matching/multi_histogram/'
 
-  indata=np.loadtxt("dati_1.4.dat", skiprows=90000, dtype=np.float64)
+  indata=np.loadtxt(f"{path}dati_4.dat", skiprows=1000, dtype=np.float64)
   data14=np.transpose(indata)     #column ordered
 
-  indata=np.loadtxt("dati_1.7.dat", skiprows=90000, dtype=np.float64)
+  indata=np.loadtxt(f"{path}dati_4.05.dat", skiprows=1000, dtype=np.float64)
   data17=np.transpose(indata)     #column ordered
 
-  indata=np.loadtxt("dati_3.dat", skiprows=90000, dtype=np.float64)
-  data3=np.transpose(indata)     #column ordered
+  # indata=np.loadtxt("dati_3.dat", skiprows=90000, dtype=np.float64)
+  # data3=np.transpose(indata)     #column ordered
 
   def energy(vec):
    return 42*2**2*(1-vec[0]-2*vec[1])#42*3**2*(1-(vec[0]+vec[1])/2) #6*4*8**3
 
   def plaq(vec):
-   return vec[0]+2*vec[1]#return (vec[0]+vec[1])/2.0
+    return (vec[0]+vec[1])/2.0
 
   def squareplaq(vec):
    return (vec[0]+vec[1])*(vec[0]+vec[1])/4.0
@@ -360,9 +362,9 @@ if __name__=="__main__":
   def susc(v):
    return v[0]-v[1]*v[1]
 
-  stuff=[[1.4, data14, 100], [1.7, data17, 100], [3, data3, 100]]
+  stuff=[[4, data14, 100], [4.05, data17, 100]]#, [3, data3, 100]]
 
-  multihisto_for_primary(1.4, 3, 20, energy, plaq, stuff)
+  multihisto_for_primary(4.05, 4, 20, energy, plaq, stuff)
 
   #multihisto_for_secondary(1.4, 3, 100, energy, susc, [squareplaq, plaq], stuff)
 
