@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from scipy.optimize import curve_fit
+from scipy.optimize import fsolve
 import concatenate
 import plot
 import progressbar as pb
@@ -298,6 +299,10 @@ def compute_r2F(path):
 def tune_r2F():
     Ns_list=[4, 5]
     
+    stuff = []
+    runcoup_r1 = []
+    d_runcoup_r1 = []
+    
     betas_list = [[4, 4.05, 4.15, 4.25], [11, 11.5, 12, 12.5, 15]]
 
     plt.figure(figsize=(16,12))
@@ -308,6 +313,7 @@ def tune_r2F():
     
     path = f"/home/negro/projects/matching/step_scaling/L3/T42_L3_b3"
     
+    ## r = r2
     tmp1, tmp2, tmp3 = np.loadtxt(f"{path}/analysis/r2F.txt", usecols=(0,1,2), unpack=True)
     r.append(tmp1)
     r2F.append(tmp2)
@@ -317,8 +323,10 @@ def tune_r2F():
     r2F = np.column_stack(r2F)
     d_r2F = np.column_stack(d_r2F)
     
+    r2F_L3 = r2F[:,:]
+    
     plt.errorbar(3, r2F[1, :], d_r2F[1,:], **plot.data(0))
-
+    
     for count, Ns in enumerate(Ns_list):
         r = []
         r2F=[]
@@ -336,6 +344,8 @@ def tune_r2F():
         r = np.column_stack(r)
         r2F = np.column_stack(r2F)
         d_r2F = np.column_stack(d_r2F)
+        
+        plt.errorbar(betas, r2F[1, :], d_r2F[1, :], **plot.data(count+1))
         
         ## fitting 
         # quadratic model
@@ -363,14 +373,121 @@ def tune_r2F():
         
         ## confidence band
         # bootstrap samples
-        boot_y = y + np.random.normal(0, d_y, len(y)) 
+        n_boot = 200
 
+        boot_opt = np.random.multivariate_normal(opt, cov, size=n_boot, tol=1e-10)
         
-
-
+        boot_y_fit = [model(x_fit, boot_opt[i,0], boot_opt[i,1], boot_opt[i,2]) for i in range(n_boot)]        
+        boot_band = np.std(boot_y_fit, axis = 0, ddof=1)   
         
-        plt.errorbar(betas, r2F[1, :], d_r2F[1, :], **plot.data(count+1))
-    plt.show()
+        plt.fill_between(x_fit, y_fit - boot_band, y_fit + boot_band, **plot.conf_band(count + 1))
+        
+        ## getting tuned point and error
+        def func(x):
+            return (model(x, opt[0], opt[1], opt[2]) - r2F_L3[1,:])
+        beta0 = 4
+        beta_tuned = fsolve(func, beta0)
+        
+        stuff.append(beta_tuned)
+        
+        r2F_tuned = model(beta_tuned, opt[0], opt[1], opt[2])
+        boot_r2F_tuned = [model(beta_tuned, boot_opt[i,0], boot_opt[i,1], boot_opt[i,2]) for i in range(n_boot)]
+        d_r2F_tuned = np.std(boot_r2F_tuned, axis = 0, ddof=1)
+        
+        plt.errorbar(beta_tuned, r2F_tuned, d_r2F_tuned, **plot.data(0))
+        
+    ## r = r1
+    r = []
+    r2F=[]
+    d_r2F=[]
+    
+    tmp1, tmp2, tmp3 = np.loadtxt(f"{path}/analysis/r2F.txt", usecols=(0,1,2), unpack=True)
+    r.append(tmp1)
+    r2F.append(tmp2)
+    d_r2F.append(tmp3)
+    
+    r = np.column_stack(r)
+    r2F = np.column_stack(r2F)
+    d_r2F = np.column_stack(d_r2F)
+    
+    plt.errorbar(3, r2F[0, :], d_r2F[0,:], **plot.data(0))
+    
+    r2F_L3 = r2F[:,:]
+
+    for count, Ns in enumerate(Ns_list):
+        r = []
+        r2F=[]
+        d_r2F=[]
+                
+        betas = betas_list[count]
+        for beta in betas:
+            path = f"/home/negro/projects/matching/step_scaling/L{Ns}/T42_L{Ns}_b{beta}"
+            
+            tmp1, tmp2, tmp3 = np.loadtxt(f"{path}/analysis/r2F.txt", usecols=(0,1,2), unpack=True)
+            r.append(tmp1)
+            r2F.append(tmp2)
+            d_r2F.append(tmp3)
+    
+        r = np.column_stack(r)
+        r2F = np.column_stack(r2F)
+        d_r2F = np.column_stack(d_r2F)
+        
+        plt.errorbar(betas, r2F[0, :], d_r2F[0, :], **plot.data(count+1))
+        
+        ## fitting 
+        # quadratic model
+        def model(x, a, b, c):
+            return a + b*x +c*x**2
+        
+        # data to fit
+        x = betas
+        y = r2F[0, :]
+        d_y = d_r2F[0, :]
+        
+        # starting parameters and bounds
+        p0 = [1,1,1]
+        bounds =  -np.inf, np.inf
+
+        # fitting
+        opt, cov = curve_fit(model, betas, y, sigma=d_y, absolute_sigma=True, p0=p0, bounds=bounds)
+        
+        # x_fit & y_fit
+        x_fit = np.linspace(x[0], x[-1], 100)
+        y_fit = model(x_fit, opt[0], opt[1], opt[2])
+
+        # plotting the fit curve
+        plt.plot(x_fit, y_fit, **plot.fit(count+1), label = 'null')
+        
+        ## confidence band
+        # bootstrap samples
+        n_boot = 200
+
+        boot_opt = np.random.multivariate_normal(opt, cov, size=n_boot, tol=1e-10)
+        
+        boot_y_fit = [model(x_fit, boot_opt[i,0], boot_opt[i,1], boot_opt[i,2]) for i in range(n_boot)]        
+        boot_band = np.std(boot_y_fit, axis = 0, ddof=1)   
+        
+        plt.fill_between(x_fit, y_fit - boot_band, y_fit + boot_band, **plot.conf_band(count + 1))
+        
+        ## getting tuned point and error
+        def func(x):
+            return (model(x, opt[0], opt[1], opt[2]) - r2F_L3[0,:])
+        beta_tuned = stuff[count]
+        
+        r2F_tuned = model(beta_tuned, opt[0], opt[1], opt[2])
+        boot_r2F_tuned = [model(beta_tuned, boot_opt[i,0], boot_opt[i,1], boot_opt[i,2]) for i in range(n_boot)]
+        d_r2F_tuned = np.std(boot_r2F_tuned, axis = 0, ddof=1)
+        
+        runcoup_r1.append(r2F_tuned)
+        d_runcoup_r1.append(d_r2F_tuned)
+        
+        plt.errorbar(beta_tuned, r2F_tuned, d_r2F_tuned, **plot.data(0))
+        
+    plt.savefig("/home/negro/projects/matching/step_scaling/r2F_tune_plot.png", dpi=300, bbox_inches='tight')
+    
+    tofile = np.column_stack((np.array(stuff), np.array(runcoup_r1), np.array(d_runcoup_r1)))
+
+    np.savetxt("/home/negro/projects/matching/step_scaling/r2F_tune.txt", tofile)
 
 if __name__ == "__main__":
     path = "/home/negro/projects/matching/step_scaling/L7/T42_L7_b15"
