@@ -1,14 +1,8 @@
-from lib import _plot
-from lib import _bootstrap
-from lib import _progressbar
-from lib import _fit
-
-import polars as pl
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy.optimize import curve_fit
 from scipy.special import k0
 
+import matplotlib as plt
 
 def thermalization(path):
     

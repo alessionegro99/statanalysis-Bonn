@@ -7,6 +7,7 @@ sys.path.append(parent_dir)
 import numpy as np
 import matplotlib.pyplot as plt
 
+from scipy.optimize import curve_fit
 import concatenate
 import plot
 import progressbar as pb
@@ -39,7 +40,7 @@ def thermalization_plaqt(path):
     plt.xlabel(r'$t_i$')
     plt.ylabel(r'$U_t(t_i)$', rotation = 0)
     plt.gca().yaxis.set_label_coords(-0.1, 0.5)
-    plt.title(r'MC history of temporal plaquette $U_t$ for $\beta=4.19$, $N_t=42$, $N_s=4$.')
+    plt.title(r'MC history of temporal plaquette $U_t$')
             
     plt.xticks(rotation=0)  
     plt.yticks(rotation=0) 
@@ -53,7 +54,7 @@ def blocksize_analysis_primary(path):
     data = readfile(path)
     print("read file ")
     
-    for aux in [0, 1, 10, 20, 30]:
+    for aux in [0, 1]:
         obs=data[:,aux]
         boot.blocksize_analysis_primary(obs, 200, [10, 500, 5], savefig=1, path=f"{path}/analysis/")
  
@@ -119,7 +120,11 @@ def plot_potential_wt(path, savefig=0):
     wsmax = 3
     
     wtmaxplot = 10
-    wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
+    
+    #wsplot = [1, np.sqrt(5), np.sqrt(8)]
+    #wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
+    #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
+    wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
     
     plt.figure(figsize=(16,12))    
     for wt in range(wtmaxplot):
@@ -172,8 +177,8 @@ def plot_potential_ws(path, savefig=0):
     
     #wsplot = [1, np.sqrt(5), np.sqrt(8)]
     #wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
-    wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
-
+    #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
+    wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
         
     plt.figure(figsize=(16,12))    
     for ws in range(wsmax):
@@ -220,7 +225,8 @@ def plot_fit_potential_ws(path, ws, xmin, xmax):
         
     #wsplot = [1, np.sqrt(5), np.sqrt(8)]
     #wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
-    wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
+    #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
+    wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
 
     # stuff that gets printed to file
     V_0_file = []
@@ -262,7 +268,8 @@ def plot_fit_potential_ws(path, ws, xmin, xmax):
 def compute_r2F(path):
     #wsplot = [1, np.sqrt(5), np.sqrt(8)]
     #wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
-    wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
+    #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
+    wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
 
     V_r = []
     boot_V_r = []
@@ -291,7 +298,7 @@ def compute_r2F(path):
 def tune_r2F():
     Ns_list=[4, 5]
     
-    betas_list = [[4, 4.05, 4.15, 4.25], [10]]
+    betas_list = [[4, 4.05, 4.15, 4.25], [11, 11.5, 12, 12.5, 15]]
 
     plt.figure(figsize=(16,12))
 
@@ -299,7 +306,7 @@ def tune_r2F():
     r2F=[]
     d_r2F=[]
     
-    path = f"/home/negro/projects/matching/step_scaling/T42_L3_b3"
+    path = f"/home/negro/projects/matching/step_scaling/L3/T42_L3_b3"
     
     tmp1, tmp2, tmp3 = np.loadtxt(f"{path}/analysis/r2F.txt", usecols=(0,1,2), unpack=True)
     r.append(tmp1)
@@ -319,7 +326,7 @@ def tune_r2F():
                 
         betas = betas_list[count]
         for beta in betas:
-            path = f"/home/negro/projects/matching/step_scaling/T42_L{Ns}_b{beta}"
+            path = f"/home/negro/projects/matching/step_scaling/L{Ns}/T42_L{Ns}_b{beta}"
             
             tmp1, tmp2, tmp3 = np.loadtxt(f"{path}/analysis/r2F.txt", usecols=(0,1,2), unpack=True)
             r.append(tmp1)
@@ -330,12 +337,43 @@ def tune_r2F():
         r2F = np.column_stack(r2F)
         d_r2F = np.column_stack(d_r2F)
         
+        ## fitting 
+        # quadratic model
+        def model(x, a, b, c):
+            return a + b*x +c*x**2
+        
+        # data to fit
+        x = betas
+        y = r2F[1, :]
+        d_y = d_r2F[1, :]
+        
+        # starting parameters and bounds
+        p0 = [1,1,1]
+        bounds =  -np.inf, np.inf
 
-        plt.errorbar(betas, r2F[1, :], d_r2F[1,:], **plot.data(count+1))
+        # fitting
+        opt, cov = curve_fit(model, betas, y, sigma=d_y, absolute_sigma=True, p0=p0, bounds=bounds)
+        
+        # x_fit & y_fit
+        x_fit = np.linspace(x[0], x[-1], 100)
+        y_fit = model(x_fit, opt[0], opt[1], opt[2])
+
+        # plotting the fit curve
+        plt.plot(x_fit, y_fit, **plot.fit(count+1), label = 'null')
+        
+        ## confidence band
+        # bootstrap samples
+        boot_y = y + np.random.normal(0, d_y, len(y)) 
+
+        
+
+
+        
+        plt.errorbar(betas, r2F[1, :], d_r2F[1, :], **plot.data(count+1))
     plt.show()
 
 if __name__ == "__main__":
-    path = "/home/negro/projects/matching/step_scaling/T42_L5_b10"
+    path = "/home/negro/projects/matching/step_scaling/L7/T42_L7_b15"
     
     #concatenate.concatenate(f"{path}/data", 100)
     
@@ -347,9 +385,10 @@ if __name__ == "__main__":
     #plot_potential_wt(path, 1)
     
     #plot_potential_ws(path, 1)
-    #plot_fit_potential_ws(path, 2, 6, 10)
+    #plot_fit_potential_ws(path, 2, 7, 10)
     
-    compute_r2F(path)    
+    
+    #compute_r2F(path)    
     tune_r2F()
     
     
