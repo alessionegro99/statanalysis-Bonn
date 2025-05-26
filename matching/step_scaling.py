@@ -303,7 +303,7 @@ def tune_r2F():
     runcoup_r1 = []
     d_runcoup_r1 = []
     
-    betas_list = [[4, 4.05, 4.15, 4.25], [11, 11.5, 12, 12.5, 15]]
+    betas_list = [[4, 4.05, 4.15, 4.25], [11, 11.5, 12, 12.5]]
 
     plt.figure(figsize=(16,12))
 
@@ -483,11 +483,59 @@ def tune_r2F():
         
         plt.errorbar(beta_tuned, r2F_tuned, d_r2F_tuned, **plot.data(0))
         
-    plt.savefig("/home/negro/projects/matching/step_scaling/r2F_tune_plot.png", dpi=300, bbox_inches='tight')
-    
+    plt.grid (True, linestyle = '--', linewidth = 0.25)
+
+    plt.xlabel(r"$\beta$")
+    plt.ylabel(r"$r^2F(r,g)$", rotation=0)
+    #plt.savefig("/home/negro/projects/matching/step_scaling/r2F_tune_plot.png", dpi=300, bbox_inches='tight')
+    plt.show()
     tofile = np.column_stack((np.array(stuff), np.array(runcoup_r1), np.array(d_runcoup_r1)))
 
     np.savetxt("/home/negro/projects/matching/step_scaling/r2F_tune.txt", tofile)
+    
+def plot_r2F_vs_rlatt(path):
+    
+    r_latt = [1.00, 2**0.5, 5**0.5]
+    
+    r2F = []
+    d_r2F = []
+    
+    # L=3
+    L3_path = f"/home/negro/projects/matching/step_scaling/L3/T42_L3_b3"
+    tmp1, tmp2 = np.loadtxt(f"{L3_path}/analysis/r2F.txt", usecols=(1,2), unpack=True)
+
+    print(tmp1[0], tmp2[0])
+    
+    r2F.append(tmp1[0])
+    d_r2F.append(tmp2[0])
+
+    ## L\in{4,5}
+    plt.figure(figsize = (16,12))
+    
+    plt.xlabel(r'$1/r^2_{latt}$')
+    plt.ylabel(r'$r^2F(r_1,g)$', rotation = 0)
+
+    tmp1, tmp2 = np.loadtxt(f"{path}/r2F_tune.txt", usecols=(1,2), unpack=True)
+    
+    r2F.append(tmp1[0])
+    r2F.append(tmp1[1])
+
+    d_r2F.append(tmp2[0])
+    d_r2F.append(tmp2[1])
+    
+    r_latt = np.array(r_latt)
+    r2F = np.array(r2F)
+    d_r2F = np.array(d_r2F)
+    
+    plt.errorbar(1/r_latt**2, r2F, d_r2F, **plot.data(1))
+    plt.gca().yaxis.set_label_coords(-0.1, 0.45)
+    
+    plt.grid (True, linestyle = '--', linewidth = 0.25)
+
+    
+    plt.savefig(f'{path}/r2F_r1.png', dpi=300, bbox_inches='tight')
+    plt.show()
+
 
 if __name__ == "__main__":
     path = "/home/negro/projects/matching/step_scaling/L7/T42_L7_b15"
@@ -505,9 +553,11 @@ if __name__ == "__main__":
     #plot_fit_potential_ws(path, 2, 7, 10)
     
     
-    #compute_r2F(path)    
-    tune_r2F()
-    
+    #compute_r2F(path)  
+    #tune_r2F()
+
+    path = "/home/negro/projects/matching/step_scaling/tune_b3" 
+    plot_r2F_vs_rlatt(path)
     
     
     
