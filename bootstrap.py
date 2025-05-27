@@ -15,7 +15,7 @@ __all__ = ["bootstrap_for_primary", "bootstrap_for_secondary", "blocksize_analys
 #***************************
 #library functions
 
-def bootstrap_for_primary(func, vec_in, block, samples, seed=None):
+def bootstrap_for_primary(func, vec_in, block, samples, seed=None, returnboot=False):
   """Bootstrap for primary observables.
 
   Given a numpy vector "vec_in", compute 
@@ -45,7 +45,7 @@ def bootstrap_for_primary(func, vec_in, block, samples, seed=None):
   aux=len(block_sum_data)
   
   if seed==None:
-    bootsample=np.random.choice(block_sum_data, size=(samples, aux), replace=True )
+    bootsample=np.random.choice(block_sum_data, size=(samples, aux), replace=True)
   else:
     np.random.seed(seed)
     bootsample = np.random.choice(block_sum_data, size=(samples, aux), replace=True)
@@ -54,8 +54,14 @@ def bootstrap_for_primary(func, vec_in, block, samples, seed=None):
 
   ris=np.mean(risboot)
   err=np.std(risboot, ddof=1)
- 
-  return ris, err
+  
+  if returnboot==True:
+    return ris, err, bootsample
+  
+  else:
+    return ris, err
+
+
 
 
 def bootstrap_for_secondary(func2, block, samples, show_progressbar, *args, seed=None, returnsamples=0):

@@ -29,7 +29,9 @@ def readfile(path, skiprows = 1):
 def thermalization(path): 
     data = readfile(path)
     
-    plaqt = data[:,6]
+    idx = 1
+    
+    plaqt = data[:,4 + idx*2]
     
     x = np.arange(0,len(plaqt), len(plaqt)//500)
     y = plaqt[0:len(plaqt):len(plaqt)//500]
@@ -42,16 +44,16 @@ def thermalization(path):
              , color = plot.color_dict[1])
     
     plt.xlabel(r'$t_i$')
-    plt.ylabel(r'$G(1)(t_i)$', rotation = 0)
+    #plt.ylabel(r'$G(1)(t_i)$', rotation = 0)
     plt.gca().yaxis.set_label_coords(-0.1, 0.5)
-    plt.title(r'MC history of $G(R=1)$')
+    plt.title(r'$MC history$')
             
     plt.xticks(rotation=0)  
     plt.yticks(rotation=0) 
     
     plt.grid (True, linestyle = '--', linewidth = 0.25)
 
-    plt.savefig(f"{path}/analysis/thermalization.png", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{path}/analysis/thermalization_G({idx}).png", dpi=300, bbox_inches='tight')
     
 def blocksize_analysis_primary(path):
     print("reading file...")
@@ -195,94 +197,111 @@ def fit_polycorr(path):
     np.savetxt(f"{path}/analysis/fit_res.txt", data)
     
 def boot_fit_polycorr(path):
-
-    def model(x, a, E0):
-        return _fit.sym_K0(x, 96, a, E0)
+    data = readfile(path)
     
-    ## fit on the original sample
-    ReG_t0 = df[ReG].to_numpy()
+    def id(x):
+        return x
     
-    x = np.arange(15,24)
+    def sym_k0(x, a, E0):
+        return a*(k0(E0*x) + k0(E0*(96-x)))
     
-    y_t0 = ReG_t0[:, x]
-    y = np.mean(y_t0, axis = 0)
-        
+    maxpolycorr = 24
+    seed = 8220
+    samples = 1000
+    blocksize = 2000
+    xmin = 15
+    xmax = 23
+    
+    x = np.arange(0, maxpolycorr)      
+    mask = ((x<=xmax) & (x>=xmin))
+    
+    num_blocks = len(data[:,0])//blocksize
+    
+    opt_list = []
+    chi2red_list = []
+            
     p0 = np.asarray([1, 1], float)
     bounds = 0, np.inf
     
-    R_ij = np.corrcoef(y_t0, rowvar=False)
-        
-    b_y_t0 = np.apply_along_axis(_bootstrap.blocking, axis=0, arr=y_t0, block_size=4000, discard_end=True)
-    
-    b_t0 = b_y_t0.shape[0]
-    
-    err = np.std(b_y_t0, axis = 0)/b_t0**0.5
-    
-    C_ij = np.outer(err, err) * R_ij # first compute R_ij then correct for autocorrelation (sigma_ii naively estimated on the MC history is not correct due to autocorrelation!)
-    
-    opt, cov = curve_fit(model, x, y, sigma=C_ij, absolute_sigma=True, p0=p0, bounds=bounds)
-    
-    chi2 = _fit.chi2_yerr(x, y, model, C_ij, opt[0], opt[1])
-    
-    print(opt)
-    print(cov**0.5)
-    print(chi2)
-    
-    n_col = np.shape(y_t0)[1]
-    
-    n_boot = 500
-    
-    chi_list = []
-            
-    for n in range(n_boot):
-        _progressbar.progress_bar(n, n_boot)
-        y_t = []
-        b_y_t = []
-        
-        seed = 423784
+    for sample in range(samples):
+        pb.progress_bar(sample, samples)
 
-        for i in range(n_col):
-            y_t.append(_bootstrap.bootstrap_samples(y_t0[:,i], 1, seed + n))
+        y_t0 = []
+        y = []
+        d_y = []
         
-        y_t = np.array(y_t)
-        y_t = np.squeeze(y_t).T
-                                                 
-        y = np.mean(y_t, axis = 0)
-                
-        R_ij = np.corrcoef(y_t, rowvar=False)
-          
-        for i in range(n_col):
-            b_y_t.append(_bootstrap.bootstrap_samples(b_y_t0[:,i], 1, seed + n))
+        rng = np.random.default_rng(seed + sample)
+        idx_blocks = rng.integers(0, num_blocks, size=num_blocks)
         
-        b_y_t = np.array(b_y_t)
-        b_y_t = np.squeeze(b_y_t).T
-        
-        b_t = b_y_t.shape[0]
-                
-        err = np.std(b_y_t, axis = 0)/b_t**0.5
-        
-        C_ij = np.outer(err, err) * R_ij # first compute R_ij then correct for autocorrelation (sigma_ii naively estimated on the MC history is not correct due to autocorrelation!)
-                
-        opt, cov = curve_fit(model, x, y, sigma=C_ij, absolute_sigma=True, p0=p0, bounds=bounds, maxfev = 1000)
-        
-        chi2 = _fit.chi2_yerr(x, y, model, C_ij, opt[0], opt[1])
-        
-        p0=opt
-        
-        chi_list.append(chi2)
+        for i in range(maxpolycorr):
+            tmp = data[:, 4 + 2*i]
             
+            # drop last elements
+            tmp = tmp[:(num_blocks*blocksize)]
+                        
+            # shuffle blockwise with repetition (remember C_ij needs unblocked data)
+            tmp = np.concatenate([tmp[(j*blocksize):((j+1)*blocksize)] for j in idx_blocks])
+            
+            y_t0.append(tmp) # unblocked data for C_ij
+            y.append(np.mean(tmp)) 
+            
+            tmp_blockmean = []
+            for j in range(num_blocks):
+                tmp_blockmean.append(np.mean(tmp[(j*blocksize):((j+1)*blocksize)]))
+            
+            d_y.append(np.std(tmp_blockmean)/num_blocks**0.5) # \tau_int correction
+        
+        y_t0 = np.array(y_t0).T
+        y = np.array(y)
+        d_y = np.array(d_y)
+                
+        ## fitting
+        x_mskd = x[mask]
+        y_t0_mskd = y_t0[:,mask]
+        y_mskd = y[mask]
+        d_y_mskd = d_y[mask]
+        
+        R_ij = np.corrcoef(y_t0_mskd, rowvar=False)
+        
+        # first compute R_ij then correct for autocorrelation (sigma_ii naively estimated on the MC history is not correct due to autocorrelation!)
+        C_ij = np.outer(d_y_mskd, d_y_mskd) * R_ij 
+            
+        opt, cov = curve_fit(sym_k0, x_mskd, y_mskd, sigma=C_ij, absolute_sigma=True, p0=p0, bounds=bounds)
+        chi2 = reg.chi2_corr(x_mskd, y_mskd, sym_k0, C_ij, opt[0], opt[1])
+        chi2red = chi2/(len(x_mskd) - 2)
+        
+        chi2red_list.append(chi2red)
+        
+        p0 = opt
+        
+        opt_list.append(opt)
+        
+    opt_list = np.array(opt_list)
     
-    print(np.mean(chi_list), np.std(chi_list))
+    boot_opt = np.mean(opt_list[:,1])
+    boot_opt_std = np.std(opt_list[:,1], ddof=1)
+    
+    boot_chi2red = np.mean(chi2red_list)
+    boot_chi2red_std = np.std(chi2red_list, ddof=1)
+
+    print(boot_opt, boot_opt_std)
+    print(boot_chi2red, boot_chi2red_std)
+    
+    data = [boot_opt, boot_opt_std, boot_chi2red, boot_chi2red_std]
+    np.savetxt(f"{path}/analysis/boot_fit_res.txt", data)
 
 if __name__ == "__main__":
     
-    path = "/home/negro/projects/reconfinement/polycorr_Nt/b23.3805_h0.005/corr_24_9_96_0.005"
-    
-    #concatenate.concatenate(f"{path}/rawdata", 2000)
-    
-    #thermalization(path)
-    #blocksize_analysis_primary(path)
-    
-    #polycorr(path)
+    for Ns in [6, 7, 8, 9, 11, 12, 13]:
+        path = f"/home/negro/projects/reconfinement/polycorr_Nt/b23.3805_h0.006/corr_24_{Ns}_96_0.006"
+        
+        #concatenate.concatenate(f"{path}/rawdata", 2000)
+        
+        thermalization(path)
+        blocksize_analysis_primary(path)
+        
+        polycorr(path)
 
-    fit_polycorr(path)
+        fit_polycorr(path)
+        
+        boot_fit_polycorr(path)
