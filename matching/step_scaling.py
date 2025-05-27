@@ -267,10 +267,10 @@ def plot_fit_potential_ws(path, ws, xmin, xmax):
     np.savetxt(f"{path}/analysis/extrapolation/ws_{wsplot[ws]:.2f}/fit_results_boot_samples.txt", boot_sample)
 
 def compute_r2F(path):
-    #wsplot = [1, np.sqrt(5), np.sqrt(8)]
+    wsplot = [1, np.sqrt(5), np.sqrt(8)]
     #wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
     #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
-    wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
+    #wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
 
     V_r = []
     boot_V_r = []
@@ -538,7 +538,7 @@ def plot_r2F_vs_rlatt(path):
 
 
 if __name__ == "__main__":
-    path = "/home/negro/projects/matching/step_scaling/L7/T42_L7_b15"
+    path = "/home/negro/projects/matching/step_scaling/L3/T42_L3_b3"
     
     #concatenate.concatenate(f"{path}/data", 100)
     
@@ -552,12 +552,11 @@ if __name__ == "__main__":
     #plot_potential_ws(path, 1)
     #plot_fit_potential_ws(path, 2, 7, 10)
     
-    
     #compute_r2F(path)  
     #tune_r2F()
 
-    path = "/home/negro/projects/matching/step_scaling/tune_b3" 
-    plot_r2F_vs_rlatt(path)
+    path = "/home/negro/projects/matching/step_scaling/tune_b3"
+    #plot_r2F_vs_rlatt(path)
     
     
     

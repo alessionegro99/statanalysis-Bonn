@@ -176,7 +176,7 @@ def blocksize_analysis_primary(vec_in, samples, block_vec, savefig=0, path=None)
   if savefig==0:
     plt.show()
   elif savefig==1:
-    plt.savefig(f'{path}/blocksize_analysis.png')
+    plt.savefig(f'{path}/blocksize_analysis.png',  dpi=300, bbox_inches='tight')
   
 #***************************
 # unit testing

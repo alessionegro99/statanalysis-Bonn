@@ -374,7 +374,7 @@ def fit_with_xyerr(x, dx, y, dy, xmin, xmax, func, params, samples, \
    return ris, err, chi2, dof, pvalue, boot_sample
  
 
-def chi2_yerr(x, y, model, C_ij, *params):
+def chi2_corr(x, y, model, C_ij, *params):
     """
     Compute chi-squared for a model with correlated residuals.
     
