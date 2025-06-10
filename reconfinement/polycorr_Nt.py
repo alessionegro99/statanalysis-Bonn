@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from scipy.optimize import fsolve
 from scipy.special import k0
+from scipy.linalg import eig
 
 import concatenate
 import plot
@@ -60,7 +61,7 @@ def blocksize_analysis_primary(path):
     data = readfile(path)
     print("read file ")
     
-    for aux in [44]:
+    for aux in [7]:
         obs=data[:,aux]
         boot.blocksize_analysis_primary(obs, 200, [2, 10000, 50], savefig=1, path=f"{path}/analysis/")
  
@@ -193,7 +194,7 @@ def fit_polycorr(path):
     
     plt.savefig(f"{path}/analysis/fit_polycorr.png", dpi=300, bbox_inches='tight')
     
-    data = [xmin, xmax, opt[0], opt[1], cov[0,0], cov[1,0], cov[0,1], cov[1,1], chi2red]
+    data = [xmin, xmax, opt[0], cov[0,0]**0.5, opt[1], cov[1,1]**0.5, chi2red]
     np.savetxt(f"{path}/analysis/fit_res.txt", data)
     
 def boot_fit_polycorr(path):
@@ -219,6 +220,7 @@ def boot_fit_polycorr(path):
     
     opt_list = []
     chi2red_list = []
+    eigv_list = []
             
     p0 = np.asarray([1, 1], float)
     bounds = 0, np.inf
@@ -234,7 +236,7 @@ def boot_fit_polycorr(path):
         idx_blocks = rng.integers(0, num_blocks, size=num_blocks)
         
         for i in range(maxpolycorr):
-            tmp = data[:, 4 + 2*i]
+            tmp = data[:, 7 + 2*i]
             
             # drop last elements
             tmp = tmp[:(num_blocks*blocksize)]
@@ -264,8 +266,10 @@ def boot_fit_polycorr(path):
         R_ij = np.corrcoef(y_t0_mskd, rowvar=False)
         
         # first compute R_ij then correct for autocorrelation (sigma_ii naively estimated on the MC history is not correct due to autocorrelation!)
-        C_ij = np.outer(d_y_mskd, d_y_mskd) * R_ij 
-            
+        C_ij = np.outer(d_y_mskd, d_y_mskd) * R_ij
+        
+        eigv_list.append(np.min(eig(C_ij)[0]).real)
+ 
         opt, cov = curve_fit(sym_k0, x_mskd, y_mskd, sigma=C_ij, absolute_sigma=True, p0=p0, bounds=bounds)
         chi2 = reg.chi2_corr(x_mskd, y_mskd, sym_k0, C_ij, opt[0], opt[1])
         chi2red = chi2/(len(x_mskd) - 2)
@@ -276,6 +280,7 @@ def boot_fit_polycorr(path):
         
         opt_list.append(opt)
         
+    eigv_list = np.array(eigv_list)        
     opt_list = np.array(opt_list)
     
     boot_opt = np.mean(opt_list[:,1])
@@ -283,25 +288,29 @@ def boot_fit_polycorr(path):
     
     boot_chi2red = np.mean(chi2red_list)
     boot_chi2red_std = np.std(chi2red_list, ddof=1)
+    
+    boot_eigv = np.mean(eigv_list)
+    boot_eigv_std = np.std(eigv_list, ddof=1)
 
     print(boot_opt, boot_opt_std)
     print(boot_chi2red, boot_chi2red_std)
+    print(boot_eigv, boot_eigv_std)
     
-    data = [boot_opt, boot_opt_std, boot_chi2red, boot_chi2red_std]
+    data = [boot_opt, boot_opt_std, boot_chi2red, boot_chi2red_std, boot_eigv, boot_eigv_std]
     np.savetxt(f"{path}/analysis/boot_fit_res.txt", data)
 
 if __name__ == "__main__":
     
-    for Ns in [6, 7, 8, 9, 11, 12, 13]:
+    for Ns in [10]:
         path = f"/home/negro/projects/reconfinement/polycorr_Nt/b23.3805_h0.006/corr_24_{Ns}_96_0.006"
         
         #concatenate.concatenate(f"{path}/rawdata", 2000)
         
-        thermalization(path)
-        blocksize_analysis_primary(path)
+        #thermalization(path)
+        #blocksize_analysis_primary(path)
         
-        polycorr(path)
+        #polycorr(path)
 
-        fit_polycorr(path)
+        #fit_polycorr(path)
         
         boot_fit_polycorr(path)

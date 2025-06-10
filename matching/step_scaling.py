@@ -120,12 +120,12 @@ def plot_potential_wt(path, savefig=0):
     wtmax = 10
     wsmax = 3
     
-    wtmaxplot = 10
+    wtmaxplot = 6
     
-    #wsplot = [1, np.sqrt(5), np.sqrt(8)]
+    wsplot = [1, np.sqrt(5), np.sqrt(8)]
     #wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
     #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
-    wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
+    #wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
     
     plt.figure(figsize=(16,12))    
     for wt in range(wtmaxplot):
@@ -174,12 +174,12 @@ def plot_potential_wt(path, savefig=0):
 def plot_potential_ws(path, savefig=0):
     wsmax = 3
     
-    wtmaxplot = 10
+    wtmaxplot = 6
     
-    #wsplot = [1, np.sqrt(5), np.sqrt(8)]
+    wsplot = [1, np.sqrt(5), np.sqrt(8)]
     #wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
     #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
-    wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
+    #wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
         
     plt.figure(figsize=(16,12))    
     for ws in range(wsmax):
@@ -222,12 +222,12 @@ def plot_fit_potential_ws(path, ws, xmin, xmax):
     params = [1,1]         
     
     # max wt used for extrapolating
-    wtmaxplot = 10
+    wtmaxplot = 6
         
-    #wsplot = [1, np.sqrt(5), np.sqrt(8)]
+    wsplot = [1, np.sqrt(5), np.sqrt(8)]
     #wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
     #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
-    wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
+    #wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
 
     # stuff that gets printed to file
     V_0_file = []
@@ -536,9 +536,194 @@ def plot_r2F_vs_rlatt(path):
     plt.savefig(f'{path}/r2F_r1.png', dpi=300, bbox_inches='tight')
     plt.show()
 
+def confronto_r2F_r1_L4(path, Ns):
+    
+    # [l=1, l=2, l=3]
+    x_ac = [1/0.36915425472851615**2, 1/0.7531542547285165**2, 1/0.7400542547285165**2]
+    r2F_r1_ac = [0.14874300045572017, 0.2400338548299101, 0.20420630542747306]
+    
+    betas = [4, 4.05, 4.15, 4.25]
+
+    plt.figure(figsize=(16,12))
+
+    r = []
+    r2F=[]
+    d_r2F=[]
+    for beta in betas:
+        path = f"/home/negro/projects/matching/step_scaling/L{Ns}/T42_L{Ns}_b{beta}"
+            
+        tmp1, tmp2, tmp3 = np.loadtxt(f"{path}/analysis/r2F.txt", usecols=(0,1,2), unpack=True)
+        r.append(tmp1)
+        r2F.append(tmp2)
+        d_r2F.append(tmp3)
+    
+    r = np.column_stack(r)
+    r2F = np.column_stack(r2F)
+    d_r2F = np.column_stack(d_r2F)
+        
+    plt.errorbar(betas, r2F[0, :], d_r2F[0, :], **plot.data(1))
+        
+    ## fitting 
+    # linear model
+    def model(x, a, b):
+            return a + b*x
+        
+    # data to fit
+    x_min = np.minimum(betas[0], np.min(x_ac))
+    x_max = np.maximum(betas[-1], np.max(x_ac))
+    y = r2F[0, :]
+    d_y = d_r2F[0, :]
+        
+    # starting parameters and bounds
+    p0 = [1,1]
+    bounds =  -np.inf, np.inf
+
+    # fitting
+    opt, cov = curve_fit(model, betas, y, sigma=d_y, absolute_sigma=True, p0=p0, bounds=bounds)
+        
+    # x_fit & y_fit
+    x_fit = np.linspace(x_min, x_max, 100)
+    y_fit = model(x_fit, opt[0], opt[1])
+    
+    # plotting the fit curve
+    plt.plot(x_fit, y_fit, **plot.fit(1), label = 'linear fit')
+        
+    ## confidence band
+    # bootstrap samples
+    n_boot = 200
+
+    boot_opt = np.random.multivariate_normal(opt, cov, size=n_boot, tol=1e-10)
+        
+    boot_y_fit = [model(x_fit, boot_opt[i,0], boot_opt[i,1]) for i in range(n_boot)]        
+    boot_band = np.std(boot_y_fit, axis = 0, ddof=1)   
+        
+    plt.fill_between(x_fit, y_fit - boot_band, y_fit + boot_band, **plot.conf_band(1))
+            
+    plt.grid (True, linestyle = '--', linewidth = 0.25)
+
+    plt.xlabel(r"$\beta$")
+    plt.ylabel(r"$r^2F(r,g)$", rotation=0)
+    
+    plt.errorbar(x_ac[0], r2F_r1_ac[0], **plot.data(2), label = "l=1")
+    plt.errorbar(x_ac[1], r2F_r1_ac[1], **plot.data(3), label = "l=2")
+    plt.errorbar(x_ac[2], r2F_r1_ac[2], **plot.data(4), label = "l=3")
+    
+    plt.legend()
+    
+    plt.savefig("/home/negro/projects/matching/step_scaling/confronto_r2F_r1_L4.png", dpi=300, bbox_inches='tight')
+    
+    plt.show()
+    
+def confronto_r2F_r2_L4(Ns):
+    # [l=1, l=2, l=3]
+    x_ac = [1/0.36915425472851615**2, 1/0.7531542547285165**2, 1/0.7400542547285165**2]
+    r2F_r2_ac = [1.0226308779857438, 1.0248333693799925, 1.0655839649705927]
+    
+    betas = [4, 4.05, 4.15, 4.25]
+
+    plt.figure(figsize=(16,12))
+
+    r = []
+    r2F=[]
+    d_r2F=[]
+    for beta in betas:
+        path = f"/home/negro/projects/matching/step_scaling/L{Ns}/T42_L{Ns}_b{beta}"
+            
+        tmp1, tmp2, tmp3 = np.loadtxt(f"{path}/analysis/r2F.txt", usecols=(0,1,2), unpack=True)
+        r.append(tmp1)
+        r2F.append(tmp2)
+        d_r2F.append(tmp3)
+    
+    r = np.column_stack(r)
+    r2F = np.column_stack(r2F)
+    d_r2F = np.column_stack(d_r2F)
+        
+    plt.errorbar(betas, r2F[1, :], d_r2F[1, :], **plot.data(1))
+        
+    ## fitting 
+    # linear model
+    def model(x, a, b):
+            return a + b*x
+        
+    # data to fit
+    x_min = np.minimum(betas[0], np.min(x_ac))
+    x_max = np.maximum(betas[-1], np.max(x_ac))
+    y = r2F[1, :]
+    d_y = d_r2F[1, :]
+        
+    # starting parameters and bounds
+    p0 = [1,1]
+    bounds =  -np.inf, np.inf
+
+    # fitting
+    opt, cov = curve_fit(model, betas, y, sigma=d_y, absolute_sigma=True, p0=p0, bounds=bounds)
+        
+    # x_fit & y_fit
+    x_fit = np.linspace(x_min, x_max, 100)
+    y_fit = model(x_fit, opt[0], opt[1])
+    
+    # plotting the fit curve
+    plt.plot(x_fit, y_fit, **plot.fit(1), label = 'linear fit')
+        
+    ## confidence band
+    # bootstrap samples
+    n_boot = 200
+
+    boot_opt = np.random.multivariate_normal(opt, cov, size=n_boot, tol=1e-10)
+        
+    boot_y_fit = [model(x_fit, boot_opt[i,0], boot_opt[i,1]) for i in range(n_boot)]        
+    boot_band = np.std(boot_y_fit, axis = 0, ddof=1)   
+        
+    plt.fill_between(x_fit, y_fit - boot_band, y_fit + boot_band, **plot.conf_band(1))
+            
+    plt.grid (True, linestyle = '--', linewidth = 0.25)
+
+    plt.xlabel(r"$\beta$")
+    plt.ylabel(r"$r^2F(r,g)$", rotation=0)
+    
+    plt.errorbar(x_ac[0], r2F_r2_ac[0], **plot.data(2), label = "l=1")
+    plt.errorbar(x_ac[1], r2F_r2_ac[1], **plot.data(3), label = "l=2")
+    plt.errorbar(x_ac[2], r2F_r2_ac[2], **plot.data(4), label = "l=3")
+    
+    plt.legend()
+    
+    plt.savefig("/home/negro/projects/matching/step_scaling/confronto_r2F_r2_L4.png", dpi=300, bbox_inches='tight')
+    plt.show()
+    
+def confronto_r2F_L3():
+    path = "/home/negro/projects/matching/step_scaling/L3/T42_L3_b1.4"
+
+    x = [1.0, np.sqrt(5)]
+    
+    # [l=1, l=2, l=3, l=4]
+    r2F_r1_ac = [0.29536698, 0.19739002867530875, 0.18957441018081542, 0.18940793972490294]
+    r2F_r2_ac = [1.02175514, 1.0250710849945603, 1.0648107364285249, 1.065914289433689]
+    
+    _, r2F, d_r2F = np.loadtxt(f"{path}/analysis/r2F.txt", usecols=(0,1,2), unpack=True)
+    
+    plt.figure(figsize=(16,12))
+    
+    for i, y in enumerate(r2F_r1_ac):
+        plt.errorbar(x[0], y, **plot.data(i+1, label = f"l={i+1}"))
+    
+    for i, y in enumerate(r2F_r2_ac):
+        plt.errorbar(x[1], y, **plot.data(i+1))
+        
+    plt.errorbar(x, r2F, d_r2F, **plot.data(0), label = "lagrangian")
+        
+    plt.grid (True, linestyle = '--', linewidth = 0.25)
+
+
+    plt.xlabel(r'$r$')
+    plt.ylabel(fr'$r^2F(r,\beta={1.4})$')
+    
+    plt.legend()
+    plt.savefig("/home/negro/projects/matching/step_scaling/confronto_r2F_L3.png", dpi=300, bbox_inches='tight')
+
+    plt.show()
 
 if __name__ == "__main__":
-    path = "/home/negro/projects/matching/step_scaling/L3/T42_L3_b3"
+    path = "/home/negro/projects/matching/step_scaling/L3/T42_L3_b1.4"
     
     #concatenate.concatenate(f"{path}/data", 100)
     
@@ -550,13 +735,15 @@ if __name__ == "__main__":
     #plot_potential_wt(path, 1)
     
     #plot_potential_ws(path, 1)
-    #plot_fit_potential_ws(path, 2, 7, 10)
+    #plot_fit_potential_ws(path, 2, 3, 5)
     
     #compute_r2F(path)  
     #tune_r2F()
 
-    path = "/home/negro/projects/matching/step_scaling/tune_b3"
+    #path = "/home/negro/projects/matching/step_scaling/tune_b3"
     #plot_r2F_vs_rlatt(path)
     
+    #confronto_r2F_r1_L4(path, 4)
     
+    confronto_r2F_L3()
     
