@@ -120,10 +120,10 @@ def plot_potential_wt(path, savefig=0):
     wtmax = 10
     wsmax = 3
     
-    wtmaxplot = 6
+    wtmaxplot = 10
     
-    wsplot = [1, np.sqrt(5), np.sqrt(8)]
-    #wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
+    #wsplot = [1, np.sqrt(5), np.sqrt(8)]
+    wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
     #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
     #wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
     
@@ -174,10 +174,10 @@ def plot_potential_wt(path, savefig=0):
 def plot_potential_ws(path, savefig=0):
     wsmax = 3
     
-    wtmaxplot = 6
+    wtmaxplot = 10
     
-    wsplot = [1, np.sqrt(5), np.sqrt(8)]
-    #wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
+    #wsplot = [1, np.sqrt(5), np.sqrt(8)]
+    wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
     #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
     #wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
         
@@ -210,7 +210,7 @@ def plot_potential_ws(path, savefig=0):
     elif savefig==1:
         plt.savefig(f"{path}/analysis/potential_ws.png", dpi=300, bbox_inches='tight')
 
-def plot_fit_potential_ws(path, ws, xmin, xmax):
+def plot_fit_potential_ws(path, ws, wtmaxplot, xmin, xmax):
     # for fitting aV(wt,ws) for small wt
     def ansatz(x, pars):
         return pars[0] + pars[1]/x
@@ -220,12 +220,10 @@ def plot_fit_potential_ws(path, ws, xmin, xmax):
 
     # initial guess of parameters
     params = [1,1]         
-    
-    # max wt used for extrapolating
-    wtmaxplot = 6
+
         
-    wsplot = [1, np.sqrt(5), np.sqrt(8)]
-    #wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
+    #wsplot = [1, np.sqrt(5), np.sqrt(8)]
+    wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
     #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
     #wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
 
@@ -267,8 +265,8 @@ def plot_fit_potential_ws(path, ws, xmin, xmax):
     np.savetxt(f"{path}/analysis/extrapolation/ws_{wsplot[ws]:.2f}/fit_results_boot_samples.txt", boot_sample)
 
 def compute_r2F(path):
-    wsplot = [1, np.sqrt(5), np.sqrt(8)]
-    #wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
+    #wsplot = [1, np.sqrt(5), np.sqrt(8)]
+    wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
     #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
     #wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
 
@@ -303,7 +301,7 @@ def tune_r2F():
     runcoup_r1 = []
     d_runcoup_r1 = []
     
-    betas_list = [[4, 4.05, 4.15, 4.25], [11, 11.5, 12, 12.5]]
+    betas_list = [[1.6, 1.8, 2, 4, 4.05, 4.15, 4.25], [11, 11.5, 12, 12.5]]
 
     plt.figure(figsize=(16,12))
 
@@ -536,13 +534,13 @@ def plot_r2F_vs_rlatt(path):
     plt.savefig(f'{path}/r2F_r1.png', dpi=300, bbox_inches='tight')
     plt.show()
 
-def confronto_r2F_r1_L4(path, Ns):
+def confronto_r2F_r1_L4(Ns):
     
     # [l=1, l=2, l=3]
     x_ac = [1/0.36915425472851615**2, 1/0.7531542547285165**2, 1/0.7400542547285165**2]
     r2F_r1_ac = [0.14874300045572017, 0.2400338548299101, 0.20420630542747306]
     
-    betas = [4, 4.05, 4.15, 4.25]
+    betas = [1.6, 1.8, 2, 4, 4.05, 4.15, 4.25]
 
     plt.figure(figsize=(16,12))
 
@@ -565,17 +563,17 @@ def confronto_r2F_r1_L4(path, Ns):
         
     ## fitting 
     # linear model
-    def model(x, a, b):
-            return a + b*x
+    def model(x, a, b,c ):
+            return a + b*x +c*x**2
         
     # data to fit
     x_min = np.minimum(betas[0], np.min(x_ac))
-    x_max = np.maximum(betas[-1], np.max(x_ac))
+    x_max = betas[-1]
     y = r2F[0, :]
     d_y = d_r2F[0, :]
         
     # starting parameters and bounds
-    p0 = [1,1]
+    p0 = [1,1,1]
     bounds =  -np.inf, np.inf
 
     # fitting
@@ -583,7 +581,7 @@ def confronto_r2F_r1_L4(path, Ns):
         
     # x_fit & y_fit
     x_fit = np.linspace(x_min, x_max, 100)
-    y_fit = model(x_fit, opt[0], opt[1])
+    y_fit = model(x_fit, opt[0], opt[1], opt[2])
     
     # plotting the fit curve
     plt.plot(x_fit, y_fit, **plot.fit(1), label = 'linear fit')
@@ -594,7 +592,7 @@ def confronto_r2F_r1_L4(path, Ns):
 
     boot_opt = np.random.multivariate_normal(opt, cov, size=n_boot, tol=1e-10)
         
-    boot_y_fit = [model(x_fit, boot_opt[i,0], boot_opt[i,1]) for i in range(n_boot)]        
+    boot_y_fit = [model(x_fit, boot_opt[i,0], boot_opt[i,1], boot_opt[i,2]) for i in range(n_boot)]        
     boot_band = np.std(boot_y_fit, axis = 0, ddof=1)   
         
     plt.fill_between(x_fit, y_fit - boot_band, y_fit + boot_band, **plot.conf_band(1))
@@ -602,7 +600,7 @@ def confronto_r2F_r1_L4(path, Ns):
     plt.grid (True, linestyle = '--', linewidth = 0.25)
 
     plt.xlabel(r"$\beta$")
-    plt.ylabel(r"$r^2F(r,g)$", rotation=0)
+    plt.ylabel(r"$r^2F(r,g)$")
     
     plt.errorbar(x_ac[0], r2F_r1_ac[0], **plot.data(2), label = "l=1")
     plt.errorbar(x_ac[1], r2F_r1_ac[1], **plot.data(3), label = "l=2")
@@ -619,7 +617,7 @@ def confronto_r2F_r2_L4(Ns):
     x_ac = [1/0.36915425472851615**2, 1/0.7531542547285165**2, 1/0.7400542547285165**2]
     r2F_r2_ac = [1.0226308779857438, 1.0248333693799925, 1.0655839649705927]
     
-    betas = [4, 4.05, 4.15, 4.25]
+    betas = [1.6, 1.8, 2, 4, 4.05, 4.15, 4.25]
 
     plt.figure(figsize=(16,12))
 
@@ -638,21 +636,21 @@ def confronto_r2F_r2_L4(Ns):
     r2F = np.column_stack(r2F)
     d_r2F = np.column_stack(d_r2F)
         
-    plt.errorbar(betas, r2F[1, :], d_r2F[1, :], **plot.data(1))
+    plt.errorbar(betas, r2F[1, :], d_r2F[1, :], **plot.data(1), label='lagrangian')
         
     ## fitting 
     # linear model
-    def model(x, a, b):
-            return a + b*x
+    def model(x, a, b, c):
+            return a + b*x +c*x**2
         
     # data to fit
     x_min = np.minimum(betas[0], np.min(x_ac))
-    x_max = np.maximum(betas[-1], np.max(x_ac))
+    x_max = betas[-1]
     y = r2F[1, :]
     d_y = d_r2F[1, :]
         
     # starting parameters and bounds
-    p0 = [1,1]
+    p0 = [1,1,1]
     bounds =  -np.inf, np.inf
 
     # fitting
@@ -660,10 +658,10 @@ def confronto_r2F_r2_L4(Ns):
         
     # x_fit & y_fit
     x_fit = np.linspace(x_min, x_max, 100)
-    y_fit = model(x_fit, opt[0], opt[1])
+    y_fit = model(x_fit, opt[0], opt[1], opt[2])
     
     # plotting the fit curve
-    plt.plot(x_fit, y_fit, **plot.fit(1), label = 'linear fit')
+    plt.plot(x_fit, y_fit, **plot.fit(1), label = 'quadratic fit')
         
     ## confidence band
     # bootstrap samples
@@ -671,7 +669,7 @@ def confronto_r2F_r2_L4(Ns):
 
     boot_opt = np.random.multivariate_normal(opt, cov, size=n_boot, tol=1e-10)
         
-    boot_y_fit = [model(x_fit, boot_opt[i,0], boot_opt[i,1]) for i in range(n_boot)]        
+    boot_y_fit = [model(x_fit, boot_opt[i,0], boot_opt[i,1], boot_opt[i,2]) for i in range(n_boot)]        
     boot_band = np.std(boot_y_fit, axis = 0, ddof=1)   
         
     plt.fill_between(x_fit, y_fit - boot_band, y_fit + boot_band, **plot.conf_band(1))
@@ -679,7 +677,7 @@ def confronto_r2F_r2_L4(Ns):
     plt.grid (True, linestyle = '--', linewidth = 0.25)
 
     plt.xlabel(r"$\beta$")
-    plt.ylabel(r"$r^2F(r,g)$", rotation=0)
+    plt.ylabel(r"$r^2F(r,g)$")
     
     plt.errorbar(x_ac[0], r2F_r2_ac[0], **plot.data(2), label = "l=1")
     plt.errorbar(x_ac[1], r2F_r2_ac[1], **plot.data(3), label = "l=2")
@@ -723,7 +721,7 @@ def confronto_r2F_L3():
     plt.show()
 
 if __name__ == "__main__":
-    path = "/home/negro/projects/matching/step_scaling/L3/T42_L3_b1.4"
+    path = "/home/negro/projects/matching/step_scaling/L4/T42_L4_b1.8"
     
     #concatenate.concatenate(f"{path}/data", 100)
     
@@ -735,15 +733,16 @@ if __name__ == "__main__":
     #plot_potential_wt(path, 1)
     
     #plot_potential_ws(path, 1)
-    #plot_fit_potential_ws(path, 2, 3, 5)
+    #plot_fit_potential_ws(path, 2, 8, 5, 10)
     
     #compute_r2F(path)  
     #tune_r2F()
 
-    #path = "/home/negro/projects/matching/step_scaling/tune_b3"
+    path = "/home/negro/projects/matching/step_scaling/tune_b3"
     #plot_r2F_vs_rlatt(path)
     
-    #confronto_r2F_r1_L4(path, 4)
-    
-    confronto_r2F_L3()
+    #confronto_r2F_r1_L4(4)
+    #confronto_r2F_r2_L4(4)
+
+    #confronto_r2F_L3()
     
