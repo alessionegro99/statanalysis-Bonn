@@ -82,7 +82,7 @@ def plot_potential_Wilsont(path):
         d_V = []
         
         for ws in range(wsmax):
-            wloop = data[:, 4 + ws + wsmax*wt]
+            wloop = data[:, 4 + ws + wsmax*wt] 
             
             def potential(x):
                 eps=1e-10
@@ -91,8 +91,8 @@ def plot_potential_Wilsont(path):
             args = [id, wloop]
             
             ris, err = boot.bootstrap_for_secondary(potential, blocksize, samples, 0, args, seed=seed)
-            V.append(ris)
-            d_V.append(err)
+            V.append(ris) # rifare
+            d_V.append(err) 
                 
         savefoo = np.hstack((savefoo, np.array(V).reshape(-1,1), np.array(d_V).reshape(-1,1)))
         

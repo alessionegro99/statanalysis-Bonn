@@ -412,7 +412,6 @@ def concatenate_fit_files(path):
                 line = infile.readline()
                 outfile.write(line.strip() + '\n') 
 
-
 def fit_plot_Cornell(path):
     output = np.loadtxt(f'{path}/analysis/fit_results.txt', skiprows=0)
     columns = [output[:, i] for i in range(output.shape[1])]

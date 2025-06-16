@@ -23,15 +23,20 @@ def readfile(path):
     
     return np.column_stack(columns)
     
-def thermalization_plaqt(path): 
-    data = readfile(path)
-    
-    plaqt = data[:,1]
-    
-    x = np.arange(0,len(plaqt), len(plaqt)//500)
-    y = plaqt[0:len(plaqt):len(plaqt)//500]
+def thermalization(path): 
+    output = np.loadtxt(f'{path}/data/dati_0.dat', skiprows=1)
+    columns = [output[:, i] for i in range(output.shape[1])]
 
-    plt.figure(figsize=(16,12))
+    # plaqs plaqt W(wt=1,ws=1) ... W(wt=10,ws=1) W(wt=1,ws=sqrt(5)) ... W(wt=10,ws=sqrt(5)) W(wt=10,ws=1) W(wt=1,ws=sqrt(8)) ... W(wt=10,ws=sqrt(8))
+    
+    data = np.column_stack(columns)
+    
+    foo = data[:,4 + 5 + 3*5]
+    
+    x = np.arange(0,len(foo), len(foo)//500)
+    y = foo[0:len(foo):len(foo)//500]
+
+    plt.figure(figsize=(18,12))
     plt.plot(x, y
              , marker = 'o'
              , linestyle = '-', linewidth = 0.375
@@ -39,9 +44,7 @@ def thermalization_plaqt(path):
              , color = plot.color_dict[1])
     
     plt.xlabel(r'$t_i$')
-    plt.ylabel(r'$U_t(t_i)$', rotation = 0)
     plt.gca().yaxis.set_label_coords(-0.1, 0.5)
-    plt.title(r'MC history of temporal plaquette $U_t$')
             
     plt.xticks(rotation=0)  
     plt.yticks(rotation=0) 
@@ -51,18 +54,13 @@ def thermalization_plaqt(path):
     plt.savefig(f"{path}/analysis/thermalization.png", dpi=300, bbox_inches='tight')
         
 def blocksize_analysis_primary(path):
-    print("reading file...")
     data = readfile(path)
-    print("read file ")
     
-    for aux in [0, 1]:
-        obs=data[:,aux]
-        boot.blocksize_analysis_primary(obs, 200, [10, 500, 5], savefig=1, path=f"{path}/analysis/")
+    obs=data[:,5 + 3*5]
+    boot.blocksize_analysis_primary(obs, 100, [10, 500, 5], savefig=1, path=f"{path}/analysis/")
  
 def blocksize_analysis_secondary(path):
-    print("reading file...")
     data = readfile(path)
-    print("done.")
     
     wt = 4
     
@@ -107,7 +105,7 @@ def blocksize_analysis_secondary(path):
     plt.grid(True, which='both', linestyle='--', linewidth=0.25)
     plt.savefig(f"{path}/analysis/blocksize_analysis_secondary_W(4,sqrt(5)).png", dpi=300, bbox_inches='tight')
 
-def plot_potential_wt(path, savefig=0):
+def plot_potential_wt(path, wsplot=[]):
     data = readfile(path)
     
     def id(x):
@@ -122,12 +120,13 @@ def plot_potential_wt(path, savefig=0):
     
     wtmaxplot = 10
     
-    #wsplot = [1, np.sqrt(5), np.sqrt(8)]
-    wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
-    #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
-    #wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
+    wsplot = np.array(wsplot)
     
-    plt.figure(figsize=(16,12))    
+    np.savetxt(f"{path}/analysis/potential_wt.txt", wsplot.reshape(-1,1))
+    
+    savefoo = np.loadtxt(f"{path}/analysis/potential_wt.txt").reshape(-1,1)
+    
+    plt.figure(figsize=(18,12))    
     for wt in range(wtmaxplot):
         V = []
         d_V = []
@@ -150,10 +149,10 @@ def plot_potential_wt(path, savefig=0):
         sys.stdout.flush()
 
         plt.errorbar(wsplot, V, d_V, **plot.data(wt), label=fr'$w_t={wt+1}$')
-
-        tofile = np.column_stack((np.array(wsplot), np.array(V), np.array(d_V)))
-
-        np.savetxt(f"{path}/analysis/potential_wt/potential_wt_{wt+1}.txt", tofile)
+        
+        savefoo = np.hstack((savefoo, np.array(V).reshape(-1,1), np.array(d_V).reshape(-1,1)))
+        
+    np.savetxt(f"{path}/analysis/potential_wt.txt", savefoo)
         
     plt.xlabel(r'$w_s$')
     plt.ylabel(r'$aV(w_s)$', rotation=0)
@@ -166,38 +165,31 @@ def plot_potential_wt(path, savefig=0):
     plt.grid (True, linestyle = '--', linewidth = 0.25)
     plt.legend()
     
-    if savefig==0:
-        plt.show()
-    elif savefig==1:
-        plt.savefig(f"{path}/analysis/potential_wt.png", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{path}/analysis/potential_wt.png", dpi=300, bbox_inches='tight')
         
-def plot_potential_ws(path, savefig=0):
-    wsmax = 3
+def plot_potential_ws(path, wsplot):    
+    data = np.loadtxt(f"{path}/analysis/potential_wt.txt")
     
-    wtmaxplot = 10
-    
-    #wsplot = [1, np.sqrt(5), np.sqrt(8)]
-    wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
-    #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
-    #wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
+    wtmax = 10
         
-    plt.figure(figsize=(16,12))    
-    for ws in range(wsmax):
-        V = []
-        d_V = []
-        
-        for wt in range(wtmaxplot):
-            V_tmp, d_V_tmp = np.loadtxt(f"{path}/analysis/potential_wt/potential_wt_{wt+1}.txt", usecols=(1,2), unpack=True)
+    pot = []
+    d_pot = []
+    for i in range(wtmax):
+        pot.append(data[:, 1 + i*2])
+        d_pot.append(data[:, 2 + i*2])
 
-            V.append(V_tmp[ws])
-            d_V.append(d_V_tmp[ws])
-        
-        plt.errorbar(1/np.arange(1,wtmaxplot+1), V, d_V, **plot.data(ws), label=fr'$w_s={wsplot[ws]:.2f}$')
-        
-    plt.xlabel(r'$1/w_t$')
-    plt.ylabel(r'$aV(w_t)$', rotation=0)
+    pot = np.array(list(map(list, zip(*np.array(pot)))))
+    d_pot = np.array(list(map(list, zip(*np.array(d_pot)))))
+    
+    plt.figure(figsize=(18,12))
+    
+    plt.xlabel(r'$w_s$')
+    plt.ylabel(r'$aV(w_s)$')
     plt.gca().yaxis.set_label_coords(-0.1, 0.5)
     plt.title(r'$aV(w_t, w_s)$')
+
+    for i, (pota, d_pota) in enumerate(zip(pot, d_pot)):
+        plt.errorbar(1/np.arange(1,wtmax+1), pota, d_pota, **plot.data(i), label=fr"$w_s={wsplot[i]:.2f}$")
             
     plt.xticks(rotation=0)  
     plt.yticks(rotation=0) 
@@ -205,10 +197,7 @@ def plot_potential_ws(path, savefig=0):
     plt.grid (True, linestyle = '--', linewidth = 0.25)
     plt.legend()
     
-    if savefig==0:
-        plt.show()
-    elif savefig==1:
-        plt.savefig(f"{path}/analysis/potential_ws.png", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{path}/analysis/potential_ws.png", dpi=300, bbox_inches='tight')
 
 def plot_fit_potential_ws(path, ws, wtmaxplot, xmin, xmax):
     # for fitting aV(wt,ws) for small wt
@@ -220,12 +209,6 @@ def plot_fit_potential_ws(path, ws, wtmaxplot, xmin, xmax):
 
     # initial guess of parameters
     params = [1,1]         
-
-        
-    #wsplot = [1, np.sqrt(5), np.sqrt(8)]
-    wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
-    #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
-    #wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
 
     # stuff that gets printed to file
     V_0_file = []
@@ -264,28 +247,105 @@ def plot_fit_potential_ws(path, ws, wtmaxplot, xmin, xmax):
     np.savetxt(f"{path}/analysis/extrapolation/ws_{wsplot[ws]:.2f}/fit_results.txt", data)
     np.savetxt(f"{path}/analysis/extrapolation/ws_{wsplot[ws]:.2f}/fit_results_boot_samples.txt", boot_sample)
 
-def compute_r2F(path):
-    #wsplot = [1, np.sqrt(5), np.sqrt(8)]
-    wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
-    #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
-    #wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
-
-    V_r = []
-    boot_V_r = []
-    for ws in wsplot:
-        tmp = np.loadtxt(f"{path}/analysis/extrapolation/ws_{ws:.2f}/fit_results.txt", usecols=(1), unpack=True)
-        V_r.append(tmp)
-        
-        tmp = np.loadtxt(f"{path}/analysis/extrapolation/ws_{ws:.2f}/fit_results_boot_samples.txt", unpack=True)
-        boot_V_r.append(tmp[:,0])
-
-    boot_V_r = np.column_stack(boot_V_r)
-
-    r2F_r1 = wsplot[0]**2*(V_r[1]-V_r[0])/(wsplot[1]-wsplot[0])
-    r2F_r2 = wsplot[1]**2*(V_r[2]-V_r[1])/(wsplot[2]-wsplot[1])
+def fit_potential_ws(path, wsplot):
+    min_list = [4, 4, 3]
+    max_list = [8, 8, 7]
     
-    boot_r2F_r1 = wsplot[0]**2*(boot_V_r[:,1]-boot_V_r[:,0])/(wsplot[1]-wsplot[0])
-    boot_r2F_r2 = wsplot[1]**2*(boot_V_r[:,2]-boot_V_r[:,1])/(wsplot[2]-wsplot[1])
+    def model(x, a, b):
+        return a + b/x
+    
+    def linearized_model(z, A, B):
+        return A + B*z
+    
+    wtmax = 10
+    
+    wt = np.arange(1, wtmax + 1)
+    
+    data = np.loadtxt(f"{path}/analysis/potential_wt.txt")
+        
+    pot = []
+    d_pot = []
+    for i in range(wtmax):
+        pot.append(data[:, 1 + i*2])
+        d_pot.append(data[:, 2 + i*2])
+        
+    pot = np.array(list(map(list, zip(*np.array(pot)))))
+    d_pot = np.array(list(map(list, zip(*np.array(d_pot)))))
+    
+    plt.figure(figsize=(18,12))
+    
+    plt.xlabel(r'$w_s$')
+    plt.ylabel(r'$aV(w_s)$')
+    plt.gca().yaxis.set_label_coords(-0.1, 0.5)
+    plt.title(r'$aV(w_t, w_s)$')
+    
+    bounds = -np.inf, np.inf
+    
+    p0 = [1, 1]
+    
+    boot_V0 = []
+    V0_lst = []
+    d_V0_lst = []
+    chi2red_lst = [] 
+    
+    for i, (pota, d_pota) in enumerate(zip(pot, d_pot)):
+        plt.errorbar(1/np.arange(1,wtmax+1), pota, d_pota, **plot.data(i), label=fr"$w_s={wsplot[i]:.2f}$")
+        
+        min = min_list[i]
+        max = max_list[i]
+        
+        x = wt[min:max]
+        y = pota[min:max]
+        d_y = d_pota[min:max]
+                
+        opt, cov = curve_fit(model, x, y, sigma=d_y, absolute_sigma=True, p0=p0, bounds=bounds)
+        
+        chi2 = reg.chi2_corr(x, y, model, np.diag(d_y**2), opt[0], opt[1])
+        chi2red = chi2/(len(x) - len(opt))
+        
+        z_fit = np.linspace(0, 1/x[0], 200)
+        y_fit = linearized_model(z_fit, opt[0], opt[1])
+        
+        boot_opt = np.random.multivariate_normal(opt, cov, size=200, tol=1e-10)
+        
+        boot_V0.append(boot_opt[:, 0])   
+        
+        boot_y_fit = [linearized_model(z_fit, boot_opt[i,0], boot_opt[i,1]) for i in range(200)]
+        boot_band = np.std(boot_y_fit, axis = 0, ddof=1)   
+            
+        plt.fill_between(z_fit, y_fit - boot_band, y_fit + boot_band, **plot.conf_band(i))
+        plt.plot(z_fit, y_fit, **plot.fit(i))
+        
+        V0_lst.append(opt[0])
+        d_V0_lst.append(cov[1][1]**0.5)
+        chi2red_lst.append(chi2red)
+        
+    savefoo = [np.array(wsplot), V0_lst, d_V0_lst, chi2red_lst]
+    savefoo = np.column_stack(savefoo)
+    
+    np.savetxt(f"{path}/analysis/extrap_potential_ws.txt", savefoo)
+    np.savetxt(f"{path}/analysis/boot_potential_ws.txt", boot_V0)
+
+    #plt.ylim(0.1,0.4)
+    plt.xlim(-0.01,0.4)
+    
+    plt.xticks(rotation=0)  
+    plt.yticks(rotation=0) 
+    
+    plt.grid (True, linestyle = '--', linewidth = 0.25)
+    plt.legend()
+    
+    plt.savefig(f"{path}/analysis/extrap_potential_ws.png", dpi=300, bbox_inches='tight')
+
+def compute_r2F(path, wsplot):    
+    pot = np.loadtxt(f"{path}/analysis/extrap_potential_ws.txt", usecols=(1), unpack=True)
+    boot_pot = np.loadtxt(f"{path}/analysis/boot_potential_ws.txt")
+
+    r2F_r1 = wsplot[0]**2*(pot[1]-pot[0])/(wsplot[1]-wsplot[0])
+    r2F_r2 = wsplot[1]**2*(pot[2]-pot[1])/(wsplot[2]-wsplot[1])
+    
+    boot_r2F_r1 = wsplot[0]**2*(boot_pot[:,1]-boot_pot[:,0])/(wsplot[1]-wsplot[0])
+    boot_r2F_r2 = wsplot[1]**2*(boot_pot[:,2]-boot_pot[:,1])/(wsplot[2]-wsplot[1])
     
     d_r2F_r1 = np.std(boot_r2F_r1, ddof=1)
     d_r2F_r2 = np.std(boot_r2F_r2, ddof=1)
@@ -720,22 +780,60 @@ def confronto_r2F_L3():
 
     plt.show()
 
+def plot_AC():
+    
+    beta_ac_Ns3 = [1.4]
+    
+    r2F_r1_ac_Ns3 = [0.29536698, 0.19739002867530875, 0.18957441018081542, 0.18940793972490294]
+    r2F_r2_ac_Ns3 = [1.02175514, 1.0250710849945603, 1.0648107364285249, 1.065914289433689]
+    
+    beta_ac_Ns4 = [1/0.36915425472851615**2, 1/0.7531542547285165**2, 1/0.7400542547285165**2]
+
+    r2F_r1_ac_Ns4 = [0.14874300045572017, 0.2400338548299101, 0.20420630542747306]
+    r2F_r2_ac_Ns4 = [1.0226308779857438, 1.0248333693799925, 1.0655839649705927]
+    
+    plt.figure(figsize=(18,12))
+    
+    for i in [2]:
+        plt.errorbar(beta_ac_Ns3, r2F_r1_ac_Ns3[i], **plot.data_nomarker(1), marker = "v" , label=fr"$r_1=1$, $N_s=3$")
+        plt.errorbar(beta_ac_Ns3, r2F_r2_ac_Ns3[i], **plot.data_nomarker(1), marker = "^", label=fr"$r_2=\sqrt{5}$, $N_s=3$")
+        plt.errorbar(beta_ac_Ns4[i], r2F_r1_ac_Ns4[i], **plot.data_nomarker(2), marker = "D", label=fr"$r_1=\sqrt{2}$, $N_s=4$")
+        plt.errorbar(beta_ac_Ns4[i], r2F_r2_ac_Ns4[i], **plot.data_nomarker(2), marker = "o", label=fr"$r_2=\sqrt{10}$, $N_s=4$")
+
+    plt.title(f"l={i+1}")   
+        
+    plt.xlabel(r"$l$")
+    plt.ylabel(fr'$r^2F(r,1/g^2)$')
+    
+    plt.grid (True, linestyle = '--', linewidth = 0.25)
+        
+    plt.legend()
+    plt.savefig(f"/home/negro/projects/matching/step_scaling/plots_AC/plot.png", dpi=300, bbox_inches='tight')
+
+    plt.show()
+
 if __name__ == "__main__":
-    path = "/home/negro/projects/matching/step_scaling/L4/T42_L4_b1.8"
+    path = "/home/negro/projects/matching/step_scaling/L3/T42_L3_b1.4"
     
-    #concatenate.concatenate(f"{path}/data", 100)
+    #concatenate.concatenate(f"{path}/data", 10000)
     
-    #thermalization_plaqt(path)
+    #thermalization(path)
     
     #blocksize_analysis_primary(path)
     #blocksize_analysis_secondary(path)
     
-    #plot_potential_wt(path, 1)
+    wsplot = [1, np.sqrt(5), np.sqrt(8)]
+    #wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
+    #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
+    #wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
     
-    #plot_potential_ws(path, 1)
-    #plot_fit_potential_ws(path, 2, 8, 5, 10)
+    #plot_potential_wt(path, wsplot)
     
-    #compute_r2F(path)  
+    #plot_potential_ws(path, wsplot)
+    
+    #fit_potential_ws(path, wsplot)
+    
+    #ompute_r2F(path, wsplot)  
     #tune_r2F()
 
     path = "/home/negro/projects/matching/step_scaling/tune_b3"
@@ -745,4 +843,5 @@ if __name__ == "__main__":
     #confronto_r2F_r2_L4(4)
 
     #confronto_r2F_L3()
+    plot_AC()
     

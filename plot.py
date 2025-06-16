@@ -63,6 +63,29 @@ plt.rcParams.update({
     "font.size": 24, 
     })
 
+def data_nomarker(palette_idx=1, **kwargs) -> dict:
+    try:
+        color = color_dict[palette_idx]
+    except KeyError:
+        color = 'darkblue'
+
+    try:
+        marker = marker_dict[palette_idx]
+    except KeyError:
+        marker = 'o'
+
+    pars = dict()
+    pars['linestyle'] = 'none'
+    pars['color'] = color
+    pars['markersize'] = 10
+    pars['elinewidth'] = 1.5
+    pars['capsize'] = 3.5
+    pars['markeredgecolor'] = color
+    pars['markerfacecolor'] = 'none'
+    pars.update(kwargs)
+
+    return pars
+
 def data(palette_idx=1, **kwargs) -> dict:
 
     try:
