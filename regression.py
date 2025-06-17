@@ -414,6 +414,28 @@ def format_uncertainty(value, dvalue, significance=2):
 def format_uncertainty_vec(values, dvalues, significance=2):
     return [format_uncertainty(v, d, significance) for v, d in zip(values, dvalues)]
 
+def fit_with_scipy(x, y, d_y, model, parameters, mask=None):
+  if mask is not None:
+    x = x[mask]
+    y=y[mask]
+    d_y=d_y[mask]
+    
+  x, y, d_y = np.array(x), np.array(y), np.array(d_y)
+    
+  opt, cov = curve_fit(model, x, y, sigma=d_y, absolute_sigma=True, p0=parameters)    
+        
+  x_min, x_max = np.min(x), np.max(x)
+  x_fit = np.linspace(x_min, x_max, 100)
+  y_fit = model(x_fit, *opt)
+    
+  boot_opt = np.random.multivariate_normal(opt, cov, size=200)
+  boot_y_fit = np.array([model(x_fit, *params) for params in boot_opt])
+  boot_band = np.std(boot_y_fit, axis=0, ddof=1)
+  
+  chi2 = chi2_corr(x, y, model, np.diag(d_y**2), *opt)
+  chi2red = chi2/(len(x) - len(opt))
+    
+  return opt, cov, x_fit, y_fit, boot_band, chi2red
 
 #***************************
 # unit testing
@@ -423,7 +445,6 @@ if __name__=="__main__":
   print("**********************")
   print("UNIT TESTING")
   print()
-
 
   numsamples=1000
 

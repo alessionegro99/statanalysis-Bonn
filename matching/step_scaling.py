@@ -217,7 +217,6 @@ def plot_potential_wt(path, wsplot):
         
     plt.xlabel(r'$w_s$')
     plt.ylabel(r'$aV(w_s)$')
-    plt.title(r'$aV(w_t, w_s)$')
             
     plt.xticks(rotation=0)  
     plt.yticks(rotation=0) 
@@ -312,11 +311,14 @@ def fit_potential_ws(path, wsplot, minlist, maxlist):
         z_fit = np.linspace(0, 1/x[0], 200)
         y_fit = linearized_model(z_fit, opt[0], opt[1])
         
-        boot_opt = np.random.multivariate_normal(opt, cov, size=200, tol=1e-10)
+        n_boot = 5000
+        
+        rng = np.random.default_rng(seed=8220)  # Replace 42 with your desired seed
+        boot_opt = rng.multivariate_normal(opt, cov, size=n_boot, tol=1e-10)
         
         boot_V0.append(boot_opt[:, 0])   
         
-        boot_y_fit = [linearized_model(z_fit, boot_opt[i,0], boot_opt[i,1]) for i in range(200)]
+        boot_y_fit = [linearized_model(z_fit, boot_opt[i,0], boot_opt[i,1]) for i in range(n_boot)]
         boot_band = np.std(boot_y_fit, axis = 0, ddof=1)   
             
         plt.fill_between(z_fit, y_fit - boot_band, y_fit + boot_band, **plot.conf_band(i))
@@ -756,17 +758,17 @@ def confronto_r2F_r2_L4(Ns):
     plt.show()
     
 def confronto_r2F_L3():
-    path = "/home/negro/projects/matching/step_scaling/L3/T42_L3_b1.4"
+    path = "/home/negro/projects/matching/step_scaling/L3/"
 
     x = [1.0, np.sqrt(5)]
+    
+    betas = [1.4, 1.]
     
     # [l=1, l=2, l=3, l=4]
     r2F_r1_ac = [0.29536698, 0.19739002867530875, 0.18957441018081542, 0.18940793972490294]
     r2F_r2_ac = [1.02175514, 1.0250710849945603, 1.0648107364285249, 1.065914289433689]
     
-    _, r2F, d_r2F = np.loadtxt(f"{path}/analysis/r2F.txt", usecols=(0,1,2), unpack=True)
-    
-    plt.figure(figsize=(16,12))
+    plt.figure(figsize=(18,12))
     
     for i, y in enumerate(r2F_r1_ac):
         plt.errorbar(x[0], y, **plot.data(i+1, label = f"l={i+1}"))
@@ -774,16 +776,17 @@ def confronto_r2F_L3():
     for i, y in enumerate(r2F_r2_ac):
         plt.errorbar(x[1], y, **plot.data(i+1))
         
-    plt.errorbar(x, r2F, d_r2F, **plot.data(0), label = "lagrangian")
+    for i, beta in enumerate([1.8, 1.9, 2]):
+        r2F, d_r2F = np.loadtxt(f"{path}/T42_L3_b{beta}/analysis/r2F.txt", usecols=(1,2), unpack=True)
+        plt.errorbar(x, r2F, d_r2F, **plot.data(0), label = ("lagrangian" if i==0 else ""))
         
     plt.grid (True, linestyle = '--', linewidth = 0.25)
 
-
     plt.xlabel(r'$r$')
-    plt.ylabel(fr'$r^2F(r,\beta={1.4})$')
+    plt.ylabel(fr'$r^2F(r,1/g^2)$')
     
     plt.legend()
-    plt.savefig("/home/negro/projects/matching/step_scaling/confronto_r2F_L3.png", dpi=300, bbox_inches='tight')
+    plt.savefig("/home/negro/projects/matching/step_scaling/matching_beta_Ns3.png", dpi=300, bbox_inches='tight')
 
     plt.show()
 
@@ -819,8 +822,114 @@ def plot_AC():
 
     plt.show()
 
+def tuning_barecoup():
+    path = "/home/negro/projects/matching/step_scaling/L3/"
+    
+    betas = [1.4, 1.8, 1.9, 2]
+    
+    # [l=1, l=2, l=3, l=4]
+    r2F_r1_ac = [0.29536698, 0.19739002867530875, 0.18957441018081542, 0.18940793972490294]
+    r2F_r2_ac = [1.02175514, 1.0250710849945603, 1.0648107364285249, 1.065914289433689]
+    
+    plt.figure(figsize=(18,12))
+
+    plt.errorbar(betas[0], r2F_r1_ac[3], **plot.data(0), label = "hamiltonian, l=4")
+    
+    r2F_r1 = []
+    d_r2F_r1 = []
+    for i, beta in enumerate(betas[1:4]):
+        foo, bar = np.loadtxt(f"{path}/T42_L3_b{beta}/analysis/r2F.txt", usecols=(1,2), unpack=True)
+        r2F_r1.append(foo[0])
+        d_r2F_r1.append(bar[0])
+    
+    plt.errorbar(betas[1:4], r2F_r1, d_r2F_r1, **plot.data(1), label = ("lagrangian" if i==0 else ""))
+    
+    def quadratic(x, a, b, c):
+        return a + b*x + c*x**2
+    
+    opt, cov, x_fit, y_fit, boot_band, chi2 = reg.fit_with_scipy(betas[1:4], r2F_r1, d_r2F_r1, quadratic, [1,1,1], mask=None)
+    
+    a, b, c = opt[0], opt[1], opt[2]
+    y0 = r2F_r1_ac[3]
+
+    discriminant = b**2 - 4 * c * (a - y0)
+    if discriminant < 0:
+        raise ValueError("No real solution — the curve never reaches this value.")
+
+    x1 = (-b + np.sqrt(discriminant)) / (2 * c)
+    x2 = (-b - np.sqrt(discriminant)) / (2 * c)
+    
+    plt.plot(x_fit, y_fit, **plot.fit(1), label="lagrangian")
+    plt.fill_between(x_fit, y_fit-boot_band, y_fit+boot_band, **plot.conf_band(1))
+    
+    plt.plot([1.4, x2],[r2F_r1_ac[3], r2F_r1_ac[3]], **plot.fit(5))
+    
+    rng = np.random.default_rng(seed=8220)
+    boot_opt_sp = rng.multivariate_normal(opt, cov, size=1000, tol=1e-10)
+    
+    boot_y_fit_sp = np.array([quadratic(x2, *params) for params in boot_opt_sp])
+    err = np.std(boot_y_fit_sp, axis=0, ddof=1)
+        
+    plt.errorbar(x2, quadratic(x2, *opt), err, **plot.data(5))
+    
+    plt.grid (True, linestyle = '--', linewidth = 0.25)
+    plt.xlabel(f"$1/g^2$")
+    plt.ylabel(f"$r_2F(r_1,1/g^2)$")
+        
+    plt.legend()
+    plt.savefig("/home/negro/projects/matching/step_scaling/tuning_barecoup_Ns3_r1.png", dpi=300, bbox_inches='tight')
+    
+    return x2
+
+def deduce_runcoup_r2(x2):
+    def quadratic(x, a, b, c):
+        return a + b*x + c*x**2
+    
+    path = "/home/negro/projects/matching/step_scaling/L3/"
+
+    betas = [1.4, 1.8, 1.9, 2]
+    r2F_r2_ac = 1.065914289433689
+    
+    r2F_r2 = []
+    d_r2F_r2 = []
+    for beta in betas[1:4]:
+        foo, bar = np.loadtxt(f"{path}/T42_L3_b{beta}/analysis/r2F.txt", usecols=(1,2), unpack=True)
+        r2F_r2.append(foo[1])
+        d_r2F_r2.append(bar[1])
+        
+    plt.figure(figsize = (18,12))
+
+    plt.errorbar(betas[0], r2F_r2_ac, **plot.data(0), label="hamiltonian, l=4")
+    
+    plt.errorbar(betas[1:4], r2F_r2, d_r2F_r2, **plot.data(1))
+    
+    opt, cov, x_fit, y_fit, boot_band, chi2 = reg.fit_with_scipy(betas[1:4], r2F_r2, d_r2F_r2, quadratic, [1,1,1], mask=None)
+    
+    plt.plot(x_fit, y_fit, **plot.fit(1), label="lagrangian")
+    plt.fill_between(x_fit, y_fit-boot_band, y_fit+boot_band, **plot.conf_band(1))
+    
+    rng = np.random.default_rng(seed=8220)
+    boot_opt_sp = rng.multivariate_normal(opt, cov, size=1000, tol=1e-10)
+    
+    boot_y_fit_sp = np.array([quadratic(x2, *params) for params in boot_opt_sp])
+    err = np.std(boot_y_fit_sp, axis=0, ddof=1)
+        
+    plt.errorbar(x2, quadratic(x2, *opt), err, **plot.data(5))
+    
+    plt.plot([1.4, x2],[quadratic(x2, *opt), quadratic(x2, *opt)], **plot.fit(5))
+    plt.fill_between(np.linspace(1.4, x2, 100),quadratic(x2, *opt)-err, quadratic(x2, *opt)+err, **plot.conf_band(5))
+    
+    plt.grid (True, linestyle = '--', linewidth = 0.25)
+    plt.xlabel(f"$1/g^2$")
+    plt.ylabel(f"$r_2F(r_2,1/g^2)$")
+        
+    plt.legend()
+    
+    plt.savefig("/home/negro/projects/matching/step_scaling/deduce_barecoup_Ns3_r2.png", dpi=300, bbox_inches='tight')
+    
 if __name__ == "__main__":
-    path = "/home/negro/projects/matching/step_scaling/L3/T42_L3_b1.8"
+    ## basic analysis ####
+    path_glob = "/home/negro/projects/matching/step_scaling/L3/T42_L3_b1.9"
     
     #thermalization(path)
     
@@ -836,22 +945,30 @@ if __name__ == "__main__":
     
     #plot_potential_wt(path, wsplot)
     
-    plot_potential_ws(path, wsplot)
+    #plot_potential_ws(path, wsplot)
     
-    min_list = [2, 3, 3]
-    max_list = [10, 10, 10]
+    # min_list = [2, 3, 4]
+    # max_list = [10, 10, 10]
     
-    fit_potential_ws(path, wsplot, min_list, max_list)
+    # fit_potential_ws(path_glob, wsplot, min_list, max_list)
     
-    compute_r2F(path, wsplot)  
+    # compute_r2F(path_glob, wsplot)  
+    
+    ######################
+    
+    ## second stage analysis ####
+    
     #tune_r2F()
 
-    path = "/home/negro/projects/matching/step_scaling/tune_b3"
+    #path = "/home/negro/projects/matching/step_scaling/tune_b3"
     #plot_r2F_vs_rlatt(path)
     
     #confronto_r2F_r1_L4(4)
     #confronto_r2F_r2_L4(4)
 
     #confronto_r2F_L3()
+    x2 = tuning_barecoup()
+    deduce_runcoup_r2(x2)
     #plot_AC()
     
+    #############################
