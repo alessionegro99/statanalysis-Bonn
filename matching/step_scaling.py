@@ -1,5 +1,6 @@
 import sys
 import os
+import shutil
 
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(parent_dir)
@@ -105,64 +106,6 @@ def blocksize_analysis_secondary(path):
     plt.grid(True, which='both', linestyle='--', linewidth=0.25)
     plt.savefig(f"{path}/analysis/blocksize_analysis_secondary_W(4,sqrt(5)).png", dpi=300, bbox_inches='tight')
 
-def plot_effmass(path):
-    data = readfile(path)
-    
-    def id(x):
-        return x
-    
-    seed = 8220
-    samples = 100
-    blocksizes = [50, 50, 50]
-    
-    wtmax = 10
-    wsmax = 3
-    
-    wtmaxplot = 10
-    
-    wsplot = np.array(wsplot)
-    
-    plt.figure(figsize=(18,12))    
-    for wt in range(wtmaxplot):
-        V = []
-        d_V = []
-        
-        for ws, blocksize in zip(range(wsmax), blocksizes):
-            W = data[:, 2 + wt + wtmax*ws]
-
-            args = [id, W]
-            
-            def potential(x):
-                eps=1e-10
-                return -np.log(np.clip(x, eps, None))/(wt+1)
-            
-            print(f"Currently bootstrapping w_t={wt+1}, w_s={wsplot[ws]:.2f}...")
-            ris, err = boot.bootstrap_for_secondary(potential, blocksize, samples, 1, args, seed=seed)
-            
-            V.append(potential(np.mean(W)))
-            d_V.append(err)
-        
-        sys.stdout.flush()
-
-        plt.errorbar(wsplot, V, d_V, **plot.data(wt), label=fr'$w_t={wt+1}$')
-        
-        savefoo = np.hstack((savefoo, np.array(V).reshape(-1,1), np.array(d_V).reshape(-1,1)))
-        
-    np.savetxt(f"{path}/analysis/potential_wt.txt", savefoo)
-        
-    plt.xlabel(r'$w_s$')
-    plt.ylabel(r'$aV(w_s)$', rotation=0)
-    plt.gca().yaxis.set_label_coords(-0.1, 0.5)
-    plt.title(r'$aV(w_t, w_s)$')
-            
-    plt.xticks(rotation=0)  
-    plt.yticks(rotation=0) 
-    
-    plt.grid (True, linestyle = '--', linewidth = 0.25)
-    plt.legend()
-    
-    plt.savefig(f"{path}/analysis/potential_wt.png", dpi=300, bbox_inches='tight')
-
 def plot_potential_wt(path, wsplot):
     data = readfile(path)
     
@@ -226,6 +169,36 @@ def plot_potential_wt(path, wsplot):
     
     plt.savefig(f"{path}/analysis/potential_wt.png", dpi=300, bbox_inches='tight')
         
+def plot_effmass(path, wsplot):
+    data = np.loadtxt(f"{path}/analysis/potential_wt.txt")
+    
+    wtmax = 10
+        
+    effm = []
+    d_effm = []
+    for i in range(wtmax):
+        effm.append(data[:, 1 + i*2])
+        d_effm.append(data[:, 2 + i*2])
+
+    effm = np.array(list(map(list, zip(*np.array(effm)))))
+    d_effm = np.array(list(map(list, zip(*np.array(d_effm)))))
+    
+    plt.figure(figsize=(18,12))
+    
+    plt.xlabel(r'$w_t$')
+    plt.ylabel(r'$aV(w_t)$')
+
+    for i, (effma, d_effma) in enumerate(zip(effm, d_effm)):
+        plt.errorbar(np.arange(1,wtmax+1), effma, d_effma, **plot.data(i), label=fr"$w_s={wsplot[i]:.2f}$")
+            
+    plt.xticks(rotation=0)  
+    plt.yticks(rotation=0) 
+    
+    plt.grid (True, linestyle = '--', linewidth = 0.25)
+    plt.legend()
+    
+    plt.savefig(f"{path}/analysis/effmass.png", dpi=300, bbox_inches='tight')
+    
 def plot_potential_ws(path, wsplot):    
     data = np.loadtxt(f"{path}/analysis/potential_wt.txt")
     
@@ -313,7 +286,7 @@ def fit_potential_ws(path, wsplot, minlist, maxlist):
         
         n_boot = 5000
         
-        rng = np.random.default_rng(seed=8220)  # Replace 42 with your desired seed
+        rng = np.random.default_rng(seed=8220)  
         boot_opt = rng.multivariate_normal(opt, cov, size=n_boot, tol=1e-10)
         
         boot_V0.append(boot_opt[:, 0])   
@@ -825,7 +798,7 @@ def plot_AC():
 def tuning_barecoup():
     path = "/home/negro/projects/matching/step_scaling/L3/"
     
-    betas = [1.4, 1.8, 1.9, 2]
+    betas = [1.4, 1.8, 1.825, 1.85, 1.875, 1.9, 1.925, 1.95, 1.975, 2]
     
     # [l=1, l=2, l=3, l=4]
     r2F_r1_ac = [0.29536698, 0.19739002867530875, 0.18957441018081542, 0.18940793972490294]
@@ -837,17 +810,17 @@ def tuning_barecoup():
     
     r2F_r1 = []
     d_r2F_r1 = []
-    for i, beta in enumerate(betas[1:4]):
+    for i, beta in enumerate(betas[1:]):
         foo, bar = np.loadtxt(f"{path}/T42_L3_b{beta}/analysis/r2F.txt", usecols=(1,2), unpack=True)
         r2F_r1.append(foo[0])
         d_r2F_r1.append(bar[0])
     
-    plt.errorbar(betas[1:4], r2F_r1, d_r2F_r1, **plot.data(1), label = ("lagrangian" if i==0 else ""))
+    plt.errorbar(betas[1:], r2F_r1, d_r2F_r1, **plot.data(1), label = ("lagrangian" if i==0 else ""))
     
     def quadratic(x, a, b, c):
         return a + b*x + c*x**2
     
-    opt, cov, x_fit, y_fit, boot_band, chi2 = reg.fit_with_scipy(betas[1:4], r2F_r1, d_r2F_r1, quadratic, [1,1,1], mask=None)
+    opt, cov, x_fit, y_fit, boot_band, chi2 = reg.fit_with_scipy(betas[1:], r2F_r1, d_r2F_r1, quadratic, [1,1,1], mask=None)
     
     a, b, c = opt[0], opt[1], opt[2]
     y0 = r2F_r1_ac[3]
@@ -882,17 +855,17 @@ def tuning_barecoup():
     return x2
 
 def deduce_runcoup_r2(x2):
-    def quadratic(x, a, b, c):
-        return a + b*x + c*x**2
+    def fit_r2(x, a, b):
+        return a + b*x
     
     path = "/home/negro/projects/matching/step_scaling/L3/"
 
-    betas = [1.4, 1.8, 1.9, 2]
+    betas = [1.4, 1.8, 1.825, 1.85, 1.875, 1.9, 1.925, 1.95, 1.975, 2]
     r2F_r2_ac = 1.065914289433689
     
     r2F_r2 = []
     d_r2F_r2 = []
-    for beta in betas[1:4]:
+    for beta in betas[1:]:
         foo, bar = np.loadtxt(f"{path}/T42_L3_b{beta}/analysis/r2F.txt", usecols=(1,2), unpack=True)
         r2F_r2.append(foo[1])
         d_r2F_r2.append(bar[1])
@@ -901,23 +874,23 @@ def deduce_runcoup_r2(x2):
 
     plt.errorbar(betas[0], r2F_r2_ac, **plot.data(0), label="hamiltonian, l=4")
     
-    plt.errorbar(betas[1:4], r2F_r2, d_r2F_r2, **plot.data(1))
+    plt.errorbar(betas[1:], r2F_r2, d_r2F_r2, **plot.data(1), label = "lagrangian" )
     
-    opt, cov, x_fit, y_fit, boot_band, chi2 = reg.fit_with_scipy(betas[1:4], r2F_r2, d_r2F_r2, quadratic, [1,1,1], mask=None)
+    opt, cov, x_fit, y_fit, boot_band, chi2red = reg.fit_with_scipy(betas[1:], r2F_r2, d_r2F_r2, fit_r2, [1,1], mask=None)
     
-    plt.plot(x_fit, y_fit, **plot.fit(1), label="lagrangian")
+    plt.plot(x_fit, y_fit, **plot.fit(1), label = fr"$\chi^2_r$={chi2red}")
     plt.fill_between(x_fit, y_fit-boot_band, y_fit+boot_band, **plot.conf_band(1))
     
     rng = np.random.default_rng(seed=8220)
     boot_opt_sp = rng.multivariate_normal(opt, cov, size=1000, tol=1e-10)
     
-    boot_y_fit_sp = np.array([quadratic(x2, *params) for params in boot_opt_sp])
+    boot_y_fit_sp = np.array([fit_r2(x2, *params) for params in boot_opt_sp])
     err = np.std(boot_y_fit_sp, axis=0, ddof=1)
         
-    plt.errorbar(x2, quadratic(x2, *opt), err, **plot.data(5))
+    plt.errorbar(x2, fit_r2(x2, *opt), err, **plot.data(5))
     
-    plt.plot([1.4, x2],[quadratic(x2, *opt), quadratic(x2, *opt)], **plot.fit(5))
-    plt.fill_between(np.linspace(1.4, x2, 100),quadratic(x2, *opt)-err, quadratic(x2, *opt)+err, **plot.conf_band(5))
+    plt.plot([1.4, x2],[fit_r2(x2, *opt), fit_r2(x2, *opt)], **plot.fit(5))
+    plt.fill_between(np.linspace(1.4, x2, 100),fit_r2(x2, *opt)-err, fit_r2(x2, *opt)+err, **plot.conf_band(5))
     
     plt.grid (True, linestyle = '--', linewidth = 0.25)
     plt.xlabel(f"$1/g^2$")
@@ -929,30 +902,35 @@ def deduce_runcoup_r2(x2):
     
 if __name__ == "__main__":
     ## basic analysis ####
-    path_glob = "/home/negro/projects/matching/step_scaling/L3/T42_L3_b1.9"
-    
-    #thermalization(path)
-    
-    #concatenate.concatenate(f"{path}/data", 10000)
+    for beta in [1.8, 1.825, 1.85, 1.875, 1.9, 1.925, 1.95, 1.975, 2]:
+        path_glob = f"/home/negro/projects/matching/step_scaling/L3/T42_L3_b{beta}"
+            
+        #thermalization(path_glob)
         
-    #blocksize_analysis_primary(path)
-    #blocksize_analysis_secondary(path)
+        #concatenate.concatenate(f"{path_glob}/data", 10000)
+        #shutil.move("dati.dat", f"{path_glob}/analysis")
+            
+        #blocksize_analysis_primary(path)
+        #blocksize_analysis_secondary(path)
+        
+        wsplot = [1, np.sqrt(5), np.sqrt(8)]
+        #wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
+        #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
+        #wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
+        
+        #plot_potential_wt(path_glob, wsplot)
     
-    wsplot = [1, np.sqrt(5), np.sqrt(8)]
-    #wsplot = [np.sqrt(2), np.sqrt(10), np.sqrt(18)]
-    #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
-    #wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
-    
-    #plot_potential_wt(path, wsplot)
-    
-    #plot_potential_ws(path, wsplot)
-    
-    # min_list = [2, 3, 4]
-    # max_list = [10, 10, 10]
-    
-    # fit_potential_ws(path_glob, wsplot, min_list, max_list)
-    
-    # compute_r2F(path_glob, wsplot)  
+        #plot_potential_ws(path_glob, wsplot)
+        
+        plot_effmass(path_glob, wsplot)
+        
+        min_list = [2, 3, 4]
+        max_list = [10, 10, 10]
+        
+        
+        #fit_potential_ws(path_glob, wsplot, min_list, max_list)
+        
+        #compute_r2F(path_glob, wsplot)  
     
     ######################
     
@@ -967,8 +945,8 @@ if __name__ == "__main__":
     #confronto_r2F_r2_L4(4)
 
     #confronto_r2F_L3()
-    x2 = tuning_barecoup()
-    deduce_runcoup_r2(x2)
+    #x2 = tuning_barecoup()
+    #deduce_runcoup_r2(x2)
     #plot_AC()
     
     #############################
