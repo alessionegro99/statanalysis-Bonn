@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 
 from scipy.optimize import curve_fit
 from scipy.optimize import fsolve
+
 import concatenate
 import plot
 import progressbar as pb
@@ -106,9 +107,8 @@ def blocksize_analysis_secondary(path):
     plt.grid(True, which='both', linestyle='--', linewidth=0.25)
     plt.savefig(f"{path}/analysis/blocksize_analysis_secondary_W(4,sqrt(5)).png", dpi=300, bbox_inches='tight')
 
-def plot_potential_wt(path, wsplot, wtmax):
+def get_potential_wt(path, wsplot, wtmax):
     data = readfile(path)
-    
     def id(x):
         return x
     
@@ -122,16 +122,15 @@ def plot_potential_wt(path, wsplot, wtmax):
     
     wsplot = np.array(wsplot)
     
+    V = []
+    d_V = []
+    V_bs = []
+    
     plt.figure(figsize=(18,12))
-    
-    np.savetxt(f"{path}/analysis/potential_wt.txt", wsplot.reshape(-1,1))
-    
-    savefoo = np.loadtxt(f"{path}/analysis/potential_wt.txt").reshape(-1,1)
-    
-    plt.figure(figsize=(18,12))    
     for wt in range(wtmaxplot):
-        V = []
-        d_V = []
+        V_wt = []
+        d_V_wt = []
+        V_bs_wt = []
         
         for ws, blocksize in zip(range(wsmax), blocksizes):
             W = data[:, 2 + wt + wtmax*ws]
@@ -143,11 +142,79 @@ def plot_potential_wt(path, wsplot, wtmax):
                 return -np.log(np.clip(x, eps, None))/(wt+1)
             
             print(f"Currently bootstrapping w_t={wt+1}, w_s={wsplot[ws]:.2f}...")
-            _, err = boot.bootstrap_for_secondary(potential, blocksize, samples, 1, args, seed=seed)
+            _, err, bs = boot.bootstrap_for_secondary(potential, blocksize, samples, 1, args, seed=seed, returnsamples=1)
+        
+            sys.stdout.flush()
+
+            V_wt.append(potential(np.mean(W)))
+            d_V_wt.append(err)
+            V_bs_wt.append(bs)
+        
+        plt.errorbar(wsplot, V_wt, d_V_wt, **plot.data(wt), label=fr'$w_t={wt+1}$')
+        
+        V.append(V_wt)
+        d_V.append(d_V_wt)
+        V_bs.append(V_bs_wt)
+        
+    np.save(f"{path}/analysis/potential_wt", np.array([wsplot, V, d_V, V_bs], dtype=object))
+            
+    plt.xlabel(r'$w_s$')
+    plt.ylabel(r'$aV(w_s)$')
+            
+    plt.xticks(rotation=0)  
+    plt.yticks(rotation=0) 
+    
+    plt.grid (True, linestyle = '--', linewidth = 0.25)
+    plt.legend()
+    
+    plt.savefig(f"{path}/analysis/potential_wt.png", dpi=300, bbox_inches='tight')        
+    
+def plot_potential_wt(path, wsplot, wtmax):
+    data = readfile(path)
+    
+    def id(x):
+        return x
+    
+    seed = 8220
+    samples = 10
+    blocksizes = [5000, 5000, 5000]
+    
+    wsmax = 3
+    
+    wtmaxplot = wtmax
+    
+    wsplot = np.array(wsplot)
+    
+    plt.figure(figsize=(18,12))
+    
+    np.savetxt(f"{path}/analysis/potential_wt.txt", wsplot.reshape(-1,1))
+    
+    savefoo = np.loadtxt(f"{path}/analysis/potential_wt.txt").reshape(-1,1)
+    savefoo_bs = np.loadtxt(f"{path}/analysis/potential_wt.txt").reshape(-1,1)
+
+    plt.figure(figsize=(18,12))    
+    for wt in range(wtmaxplot):
+        V = []
+        d_V = []
+        V_bs = []
+        
+        for ws, blocksize in zip(range(wsmax), blocksizes):
+            W = data[:, 2 + wt + wtmax*ws]
+
+            args = [id, W]
+            
+            def potential(x):
+                eps=1e-10
+                return -np.log(np.clip(x, eps, None))/(wt+1)
+            
+            print(f"Currently bootstrapping w_t={wt+1}, w_s={wsplot[ws]:.2f}...")
+            _, err, bs = boot.bootstrap_for_secondary(potential, blocksize, samples, 1, args, seed=seed, returnsamples=1)
+        
             sys.stdout.flush()
 
             V.append(potential(np.mean(W)))
             d_V.append(err)
+            V_bs.append(bs)
         
         sys.stdout.flush()
 
@@ -168,11 +235,9 @@ def plot_potential_wt(path, wsplot, wtmax):
     
     plt.savefig(f"{path}/analysis/potential_wt.png", dpi=300, bbox_inches='tight')
         
-def plot_effmass(path, wsplot):
+def plot_effmass(path, wsplot, wtmax):
     data = np.loadtxt(f"{path}/analysis/potential_wt.txt")
-    
-    wtmax = 10
-        
+            
     effm = []
     d_effm = []
     for i in range(wtmax):
@@ -198,11 +263,9 @@ def plot_effmass(path, wsplot):
     
     plt.savefig(f"{path}/analysis/effmass.png", dpi=300, bbox_inches='tight')
     
-def plot_potential_ws(path, wsplot):    
+def plot_potential_ws(path, wsplot, wtmax):    
     data = np.loadtxt(f"{path}/analysis/potential_wt.txt")
-    
-    wtmax = 10
-        
+            
     pot = []
     d_pot = []
     for i in range(wtmax):
@@ -846,7 +909,7 @@ def tuning_barecoup():
     
     plt.grid (True, linestyle = '--', linewidth = 0.25)
     plt.xlabel(f"$1/g^2$")
-    plt.ylabel(f"$r_2F(r_1,1/g^2)$")
+    plt.ylabel(f"$r^2F(r_1,1/g^2)$")
         
     plt.legend()
     plt.savefig("/home/negro/projects/matching/step_scaling/tuning_barecoup_Ns3_r1.png", dpi=300, bbox_inches='tight')
@@ -893,7 +956,7 @@ def deduce_runcoup_r2(x2):
     
     plt.grid (True, linestyle = '--', linewidth = 0.25)
     plt.xlabel(f"$1/g^2$")
-    plt.ylabel(f"$r_2F(r_2,1/g^2)$")
+    plt.ylabel(f"$r^2F(r_2,1/g^2)$")
         
     plt.legend()
     
@@ -901,13 +964,12 @@ def deduce_runcoup_r2(x2):
     
 if __name__ == "__main__":
     ## basic analysis ####
-    for beta in [1.8]:#, 1.825, 1.85, 1.875, 1.9, 1.925, 1.95, 1.975, 2]:
-        path_glob = f"/home/negro/projects/matching/step_scaling/L3/T48_L3_b{beta}"
+    for beta in [1.4]:#, 1.825, 1.85, 1.875, 1.9, 1.925, 1.95, 1.975, 2]:
+        path_glob = f"/home/negro/projects/matching/step_scaling/L3/T42_L3_b{beta}"
             
-        thermalization(path_glob)
+        # thermalization(path_glob)
         
-        concatenate.concatenate(f"{path_glob}/data", 10000)
-        shutil.move("dati.dat", f"{path_glob}/analysis")
+        #concatenate.concatenate(f"{path_glob}/data", 10000, f"{path_glob}/analysis")
             
         #blocksize_analysis_primary(path)
         #blocksize_analysis_secondary(path)
@@ -917,15 +979,17 @@ if __name__ == "__main__":
         #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
         #wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
         
-        plot_potential_wt(path_glob, wsplot, wtmax = 20)
-    
-        #plot_potential_ws(path_glob, wsplot)
+        wtmax = 10
         
-        #plot_effmass(path_glob, wsplot)
+        #plot_potential_wt(path_glob, wsplot, wtmax)
+        get_potential_wt(path_glob, wsplot, wtmax)
+
+        #plot_potential_ws(path_glob, wsplot, wtmax=14)
+        
+        #plot_effmass(path_glob, wsplot, wtmax)
         
         min_list = [2, 3, 4]
         max_list = [10, 10, 10]
-        
         
         #fit_potential_ws(path_glob, wsplot, min_list, max_list)
         
