@@ -7,7 +7,7 @@ import sys
 __all__=["concatenate"]
 
 
-def concatenate(indir, therm, use_line0_as_header=1):
+def concatenate(indir, therm, outdir, use_line0_as_header=1):
   """
   Concatenate all the files of the "indir" directory whose names differs only
   for what is written after the last occurrence of the character "_",
@@ -31,7 +31,8 @@ def concatenate(indir, therm, use_line0_as_header=1):
   # concatenate the files
   for element in unique_list:
 
-    outname=os.path.basename(element)+".dat"
+    #outname=os.path.basename(element)+".dat"
+    outname = os.path.join(outdir, os.path.basename(element) + ".dat")
     with open(outname, 'a') as outf:
       list_to_merge=glob.glob("%s_*" % element )
 
