@@ -106,7 +106,7 @@ def blocksize_analysis_secondary(path):
     plt.grid(True, which='both', linestyle='--', linewidth=0.25)
     plt.savefig(f"{path}/analysis/blocksize_analysis_secondary_W(4,sqrt(5)).png", dpi=300, bbox_inches='tight')
 
-def plot_potential_wt(path, wsplot):
+def plot_potential_wt(path, wsplot, wtmax):
     data = readfile(path)
     
     def id(x):
@@ -116,10 +116,9 @@ def plot_potential_wt(path, wsplot):
     samples = 200
     blocksizes = [50, 50, 50]
     
-    wtmax = 10
     wsmax = 3
     
-    wtmaxplot = 10
+    wtmaxplot = wtmax
     
     wsplot = np.array(wsplot)
     
@@ -902,13 +901,13 @@ def deduce_runcoup_r2(x2):
     
 if __name__ == "__main__":
     ## basic analysis ####
-    for beta in [1.8, 1.825, 1.85, 1.875, 1.9, 1.925, 1.95, 1.975, 2]:
-        path_glob = f"/home/negro/projects/matching/step_scaling/L3/T42_L3_b{beta}"
+    for beta in [1.8]:#, 1.825, 1.85, 1.875, 1.9, 1.925, 1.95, 1.975, 2]:
+        path_glob = f"/home/negro/projects/matching/step_scaling/L3/T48_L3_b{beta}"
             
-        #thermalization(path_glob)
+        thermalization(path_glob)
         
-        #concatenate.concatenate(f"{path_glob}/data", 10000)
-        #shutil.move("dati.dat", f"{path_glob}/analysis")
+        concatenate.concatenate(f"{path_glob}/data", 10000)
+        shutil.move("dati.dat", f"{path_glob}/analysis")
             
         #blocksize_analysis_primary(path)
         #blocksize_analysis_secondary(path)
@@ -918,11 +917,11 @@ if __name__ == "__main__":
         #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
         #wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
         
-        #plot_potential_wt(path_glob, wsplot)
+        plot_potential_wt(path_glob, wsplot, wtmax = 20)
     
         #plot_potential_ws(path_glob, wsplot)
         
-        plot_effmass(path_glob, wsplot)
+        #plot_effmass(path_glob, wsplot)
         
         min_list = [2, 3, 4]
         max_list = [10, 10, 10]
