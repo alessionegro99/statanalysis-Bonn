@@ -168,91 +168,21 @@ def get_potential_wt(path, wsplot, wtmax):
     plt.legend()
     
     plt.savefig(f"{path}/analysis/potential_wt.png", dpi=300, bbox_inches='tight')        
-    
-def plot_potential_wt(path, wsplot, wtmax):
-    data = readfile(path)
-    
-    def id(x):
-        return x
-    
-    seed = 8220
-    samples = 10
-    blocksizes = [5000, 5000, 5000]
-    
-    wsmax = 3
-    
-    wtmaxplot = wtmax
-    
-    wsplot = np.array(wsplot)
-    
-    plt.figure(figsize=(18,12))
-    
-    np.savetxt(f"{path}/analysis/potential_wt.txt", wsplot.reshape(-1,1))
-    
-    savefoo = np.loadtxt(f"{path}/analysis/potential_wt.txt").reshape(-1,1)
-    savefoo_bs = np.loadtxt(f"{path}/analysis/potential_wt.txt").reshape(-1,1)
-
-    plt.figure(figsize=(18,12))    
-    for wt in range(wtmaxplot):
-        V = []
-        d_V = []
-        V_bs = []
         
-        for ws, blocksize in zip(range(wsmax), blocksizes):
-            W = data[:, 2 + wt + wtmax*ws]
-
-            args = [id, W]
-            
-            def potential(x):
-                eps=1e-10
-                return -np.log(np.clip(x, eps, None))/(wt+1)
-            
-            print(f"Currently bootstrapping w_t={wt+1}, w_s={wsplot[ws]:.2f}...")
-            _, err, bs = boot.bootstrap_for_secondary(potential, blocksize, samples, 1, args, seed=seed, returnsamples=1)
-        
-            sys.stdout.flush()
-
-            V.append(potential(np.mean(W)))
-            d_V.append(err)
-            V_bs.append(bs)
-        
-        sys.stdout.flush()
-
-        plt.errorbar(wsplot, V, d_V, **plot.data(wt), label=fr'$w_t={wt+1}$')
-        
-        savefoo = np.hstack((savefoo, np.array(V).reshape(-1,1), np.array(d_V).reshape(-1,1)))
-        
-    np.savetxt(f"{path}/analysis/potential_wt.txt", savefoo)
-        
-    plt.xlabel(r'$w_s$')
-    plt.ylabel(r'$aV(w_s)$')
-            
-    plt.xticks(rotation=0)  
-    plt.yticks(rotation=0) 
+def plot_effmass(path, wtmax):
+    data = np.load(f"{path}/analysis/potential_wt.npy", allow_pickle=True)
     
-    plt.grid (True, linestyle = '--', linewidth = 0.25)
-    plt.legend()
+    wsplot, effm, d_effm, effm_bs = map(np.array, data[:4])
     
-    plt.savefig(f"{path}/analysis/potential_wt.png", dpi=300, bbox_inches='tight')
+    #print(d_effm[:,0])
+    #print(np.std(effm_bs[:,0,:], axis = 1))
         
-def plot_effmass(path, wsplot, wtmax):
-    data = np.loadtxt(f"{path}/analysis/potential_wt.txt")
-            
-    effm = []
-    d_effm = []
-    for i in range(wtmax):
-        effm.append(data[:, 1 + i*2])
-        d_effm.append(data[:, 2 + i*2])
-
-    effm = np.array(list(map(list, zip(*np.array(effm)))))
-    d_effm = np.array(list(map(list, zip(*np.array(d_effm)))))
-    
     plt.figure(figsize=(18,12))
     
     plt.xlabel(r'$w_t$')
     plt.ylabel(r'$aV(w_t)$')
 
-    for i, (effma, d_effma) in enumerate(zip(effm, d_effm)):
+    for i, (effma, d_effma) in enumerate(zip(np.transpose(effm), np.transpose(d_effm))):
         plt.errorbar(np.arange(1,wtmax+1), effma, d_effma, **plot.data(i), label=fr"$w_s={wsplot[i]:.2f}$")
             
     plt.xticks(rotation=0)  
@@ -263,25 +193,13 @@ def plot_effmass(path, wsplot, wtmax):
     
     plt.savefig(f"{path}/analysis/effmass.png", dpi=300, bbox_inches='tight')
     
-def plot_potential_ws(path, wsplot, wtmax):    
-    data = np.loadtxt(f"{path}/analysis/potential_wt.txt")
-            
-    pot = []
-    d_pot = []
-    for i in range(wtmax):
-        pot.append(data[:, 1 + i*2])
-        d_pot.append(data[:, 2 + i*2])
-
-    pot = np.array(list(map(list, zip(*np.array(pot)))))
-    d_pot = np.array(list(map(list, zip(*np.array(d_pot)))))
-    
     plt.figure(figsize=(18,12))
     
     plt.xlabel(r'$w_t$')
     plt.ylabel(r'$aV(w_t)$')
 
-    for i, (pota, d_pota) in enumerate(zip(pot, d_pot)):
-        plt.errorbar(1/np.arange(1,wtmax+1), pota, d_pota, **plot.data(i), label=fr"$w_s={wsplot[i]:.2f}$")
+    for i, (effma, d_effma) in enumerate(zip(np.transpose(effm), np.transpose(d_effm))):
+        plt.errorbar(1/np.arange(1,wtmax+1), effma, d_effma, **plot.data(i), label=fr"$w_s={wsplot[i]:.2f}$")
             
     plt.xticks(rotation=0)  
     plt.yticks(rotation=0) 
@@ -964,10 +882,10 @@ def deduce_runcoup_r2(x2):
     
 if __name__ == "__main__":
     ## basic analysis ####
-    for beta in [1.4]:#, 1.825, 1.85, 1.875, 1.9, 1.925, 1.95, 1.975, 2]:
+    for beta in [1.4]:
         path_glob = f"/home/negro/projects/matching/step_scaling/L3/T42_L3_b{beta}"
             
-        # thermalization(path_glob)
+        #thermalization(path_glob)
         
         #concatenate.concatenate(f"{path_glob}/data", 10000, f"{path_glob}/analysis")
             
@@ -981,12 +899,9 @@ if __name__ == "__main__":
         
         wtmax = 10
         
-        #plot_potential_wt(path_glob, wsplot, wtmax)
-        get_potential_wt(path_glob, wsplot, wtmax)
-
-        #plot_potential_ws(path_glob, wsplot, wtmax=14)
+        #get_potential_wt(path_glob, wsplot, wtmax)
         
-        #plot_effmass(path_glob, wsplot, wtmax)
+        #plot_effmass(path_glob, wtmax)        
         
         min_list = [2, 3, 4]
         max_list = [10, 10, 10]
@@ -1008,8 +923,8 @@ if __name__ == "__main__":
     #confronto_r2F_r2_L4(4)
 
     #confronto_r2F_L3()
-    #x2 = tuning_barecoup()
-    #deduce_runcoup_r2(x2)
+    x2 = tuning_barecoup()
+    deduce_runcoup_r2(x2)
     #plot_AC()
     
     #############################
