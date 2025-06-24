@@ -858,7 +858,7 @@ def deduce_runcoup_r2(x2):
     
     opt, cov, x_fit, y_fit, boot_band, chi2red = reg.fit_with_scipy(betas[1:], r2F_r2, d_r2F_r2, fit_r2, [1,1], mask=None)
     
-    plt.plot(x_fit, y_fit, **plot.fit(1), label = fr"$\chi^2_r$={chi2red}")
+    plt.plot(x_fit, y_fit, **plot.fit(1), label = fr"$\chi^2_r$={chi2red:.2f}")
     plt.fill_between(x_fit, y_fit-boot_band, y_fit+boot_band, **plot.conf_band(1))
     
     rng = np.random.default_rng(seed=8220)

@@ -23,7 +23,7 @@ def readfile(path, skiprows = 1):
     output = np.loadtxt(f'{path}/analysis/dati.dat', skiprows=skiprows)
     columns = [output[:, i] for i in range(output.shape[1])]
 
-    # plaqs plaqt polyre polyim ReG0 ImG0 ReG1 ImG1 ... ReG23 ImG23
+    # plaqs plaqt polyre polyim xi0 ximin TrP2 ReG0 ImG0 ReG1 ImG1 ... ReG23 ImG23
     
     return np.column_stack(columns)
 
@@ -71,7 +71,7 @@ def polycorr(path):
     def id(x):
         return x
     
-    maxpolycorr = 24
+    maxpolycorr = 48
     seed = 8220
     samples = 1000
     blocksize = 2000
@@ -82,7 +82,7 @@ def polycorr(path):
 
     for i in range(maxpolycorr):
         pb.progress_bar(i, maxpolycorr)
-        tmp = data[:, 4 + 2*i]
+        tmp = data[:, 7 + 2*i]
         
         _, err = boot.bootstrap_for_primary(id, tmp, blocksize, samples, seed)
         
@@ -104,6 +104,8 @@ def polycorr(path):
     plt.yscale('log')
     
     plt.savefig(f"{path}/analysis/polycorr.png", dpi=300, bbox_inches='tight')
+    
+    print(d_y[0])
         
 def fit_polycorr(path):
     data = readfile(path)
@@ -114,12 +116,12 @@ def fit_polycorr(path):
     def sym_k0(x, a, E0):
         return a*(k0(E0*x) + k0(E0*(96-x)))
     
-    maxpolycorr = 24
+    maxpolycorr = 48
     seed = 8220
     samples = 1000
     blocksize = 2000
-    xmin = 15
-    xmax = 23
+    xmin = 20
+    xmax = 48
     
     y_t0 = []
     
@@ -131,7 +133,7 @@ def fit_polycorr(path):
 
     for i in range(maxpolycorr):
         pb.progress_bar(i, maxpolycorr)
-        tmp = data[:, 4 + 2*i]
+        tmp = data[:, 7 + 2*i]
         
         _, err = boot.bootstrap_for_primary(id, tmp, blocksize, samples, seed)
         
@@ -299,12 +301,40 @@ def boot_fit_polycorr(path):
     data = [boot_opt, boot_opt_std, boot_chi2red, boot_chi2red_std, boot_eigv, boot_eigv_std]
     np.savetxt(f"{path}/analysis/boot_fit_res.txt", data)
 
+def format_results():
+    beta = 23.3805
+    h = 0.005
+    
+    path = f"/home/negro/projects/reconfinement/polycorr_Nt/b{beta}_h{h}"
+    # Rmin Rmax A d_A boot_A d_boot_A E0 d_E0 boot_E0 d_boot_E0 chi2 boot_chi2 d_boot_chi2 lambda0 d_lambda0
+    
+    header_line = ["Rmin", "Rmax", "A", "d_A", "boot_A", "d_boot_A", "E0", "d_E0", "boot_E0", "d_boot_E0", "chi2", "boot_chi2", "d_boot_chi2", "lambda0", "d_lambda0"]
+    header_line = " ".join(header_line)
+    
+    with open(f"{path}/results_b{beta}_h{h}.txt", "w") as f:
+        f.write(header_line + "\n")
+    
+    fit_res = []
+    with open(f"{path}/corr_24_9_96_0.005/analysis/fit_res.txt", "r") as f:
+        for line in f:
+            fit_res.append(float(line))
+                 
+    boot_fit_res = []
+    with open(f"{path}/corr_24_9_96_0.005/analysis/boot_fit_res.txt", "r") as f:
+        for line in f:
+            boot_fit_res.append(float(line))
+            
+    formatted_result = [fit_res[0], fit_res[1]]
+    
+    with open(f"{path}/results_b{beta}_h{h}.txt", "a") as f:
+        f.write(" ".join(map(str, fit_res)))
+    
 if __name__ == "__main__":
     
-    for Ns in [10]:
-        path = f"/home/negro/projects/reconfinement/polycorr_Nt/b23.3805_h0.006/corr_24_{Ns}_96_0.006"
+    for Ns in [16]:
+        path = f"/home/negro/projects/reconfinement/polycorr_Nt/b27.4745_h0.005/corr_48_{Ns}_96_0.005"
         
-        #concatenate.concatenate(f"{path}/rawdata", 2000)
+        #concatenate.concatenate(f"{path}/data", 2000, f"{path}/analysis")
         
         #thermalization(path)
         #blocksize_analysis_primary(path)
@@ -313,4 +343,6 @@ if __name__ == "__main__":
 
         #fit_polycorr(path)
         
-        boot_fit_polycorr(path)
+        #boot_fit_polycorr(path)
+        
+    format_results()
