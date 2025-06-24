@@ -778,7 +778,7 @@ def plot_AC():
 def tuning_barecoup():
     path = "/home/negro/projects/matching/step_scaling/L3/"
     
-    betas = [1.4, 1.8, 1.825, 1.85, 1.875, 1.9, 1.925, 1.95, 1.975, 2]
+    betas = [1.4, 1.8, 1.825, 1.85, 1.875, 1.9, 1.925, 1.95, 1.975]
     
     # [l=1, l=2, l=3, l=4]
     r2F_r1_ac = [0.29536698, 0.19739002867530875, 0.18957441018081542, 0.18940793972490294]
@@ -791,7 +791,7 @@ def tuning_barecoup():
     r2F_r1 = []
     d_r2F_r1 = []
     for i, beta in enumerate(betas[1:]):
-        foo, bar = np.loadtxt(f"{path}/T42_L3_b{beta}/analysis/r2F.txt", usecols=(1,2), unpack=True)
+        foo, bar = np.loadtxt(f"{path}/T48_L3_b{beta}/analysis/r2F.txt", usecols=(1,2), unpack=True)
         r2F_r1.append(foo[0])
         d_r2F_r1.append(bar[0])
     
@@ -840,13 +840,13 @@ def deduce_runcoup_r2(x2):
     
     path = "/home/negro/projects/matching/step_scaling/L3/"
 
-    betas = [1.4, 1.8, 1.825, 1.85, 1.875, 1.9, 1.925, 1.95, 1.975, 2]
+    betas = [1.4, 1.8, 1.825, 1.85, 1.875, 1.9, 1.925, 1.95, 1.975]
     r2F_r2_ac = 1.065914289433689
     
     r2F_r2 = []
     d_r2F_r2 = []
     for beta in betas[1:]:
-        foo, bar = np.loadtxt(f"{path}/T42_L3_b{beta}/analysis/r2F.txt", usecols=(1,2), unpack=True)
+        foo, bar = np.loadtxt(f"{path}/T48_L3_b{beta}/analysis/r2F.txt", usecols=(1,2), unpack=True)
         r2F_r2.append(foo[1])
         d_r2F_r2.append(bar[1])
         
@@ -883,7 +883,7 @@ def deduce_runcoup_r2(x2):
 if __name__ == "__main__":
     ## basic analysis ####
     for beta in [1.4]:
-        path_glob = f"/home/negro/projects/matching/step_scaling/L3/T42_L3_b{beta}"
+        path_glob = f"/home/negro/projects/matching/step_scaling/L3/T48_L3_b{beta}"
             
         #thermalization(path_glob)
         

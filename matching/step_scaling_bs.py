@@ -9,7 +9,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from scipy.optimize import curve_fit
-from scipy.optimize import fsolve
 
 import concatenate
 import plot
@@ -131,7 +130,7 @@ def plot_effmass(path, wtmax):
     plt.ylabel(r'$aV(w_t)$')
 
     for i, (effma, d_effma) in enumerate(zip(np.transpose(effm), np.transpose(d_effm))):
-        plt.errorbar(np.arange(1,wtmax+1), effma, d_effma, **plot.data(i), label=fr"$w_s={wsplot[i]:.2f}$")
+        plt.errorbar(np.arange(1,wtmax[i]+1), effma[:wtmax[i]], d_effma[:wtmax[i]], **plot.data(i), label=fr"$w_s={wsplot[i]:.2f}$")
                 
     plt.grid (True, linestyle = '--', linewidth = 0.25)
     plt.legend()
@@ -144,7 +143,7 @@ def plot_effmass(path, wtmax):
     plt.ylabel(r'$aV(w_t)$')
 
     for i, (effma, d_effma) in enumerate(zip(np.transpose(effm), np.transpose(d_effm))):
-        plt.errorbar(1/np.arange(1,wtmax+1), effma, d_effma, **plot.data(i), label=fr"$w_s={wsplot[i]:.2f}$")
+        plt.errorbar(1/np.arange(1,wtmax[i]+1), effma[:wtmax[i]], d_effma[:wtmax[i]], **plot.data(i), label=fr"$w_s={wsplot[i]:.2f}$")
     
     plt.grid (True, linestyle = '--', linewidth = 0.25)
     plt.legend()
@@ -163,7 +162,7 @@ def fit_potential_ws(path, wtmax, mfit_lst, Mfit_lst):
     
     wsplot, pot, d_pot, pot_bs = map(np.array, data[:4])
     
-    wt = np.arange(1, wtmax + 1)
+
     
     plt.figure(figsize=(18,12))
     
@@ -180,7 +179,8 @@ def fit_potential_ws(path, wtmax, mfit_lst, Mfit_lst):
     chi2red_lst = [] 
     
     for i, (pota, d_pota) in enumerate(zip(np.transpose(pot), np.transpose(d_pot))):
-        plt.errorbar(1/np.arange(1,wtmax+1), pota, d_pota, **plot.data(i), label=fr"$w_s={wsplot[i]:.2f}$")
+        wt = np.arange(1, wtmax[i] + 1)
+        plt.errorbar(1/np.arange(1,wtmax[i]+1), pota[:wtmax[i]], d_pota[:wtmax[i]], **plot.data(i), label=fr"$w_s={wsplot[i]:.2f}$")
         
         min = mfit_lst[i]
         max = Mfit_lst[i]
@@ -240,9 +240,7 @@ def boot_fit_potential_ws(path, wtmax, mfit_lst, Mfit_lst):
     data = np.load(f"{path}/analysis/potential_wt.npy", allow_pickle=True)
     
     wsplot, pot, d_pot, pot_bs = map(np.array, data[:4])
-    
-    wt = np.arange(1, wtmax + 1)
-    
+        
     plt.figure(figsize=(18,12))
     
     plt.xlabel(r'$w_t$')
@@ -256,7 +254,8 @@ def boot_fit_potential_ws(path, wtmax, mfit_lst, Mfit_lst):
     print("original sample")
     # fit on the original sample    
     for i, (pota, d_pota) in enumerate(zip(np.transpose(pot), np.transpose(d_pot))):
-        plt.errorbar(1/np.arange(1,wtmax+1), pota, d_pota, **plot.data(i), label=fr"$w_s={wsplot[i]:.2f}$")
+        wt = np.arange(1, wtmax[i]+ 1)
+        plt.errorbar(1/wt, pota[:wtmax[i]], d_pota[:wtmax[i]], **plot.data(i), label=fr"$w_s={wsplot[i]:.2f}$")
         
         min = mfit_lst[i]
         max = Mfit_lst[i]
@@ -276,6 +275,7 @@ def boot_fit_potential_ws(path, wtmax, mfit_lst, Mfit_lst):
     # bootstrapping the fit
     boot_V0 = []
     for i in range(pot_bs.shape[1]):
+        wt = np.arange(1, wtmax[i]+1)
         pota_bs = pot_bs[:,i,:]
         
         d_pota = np.std(pota_bs, axis=1, ddof=1)
@@ -286,7 +286,7 @@ def boot_fit_potential_ws(path, wtmax, mfit_lst, Mfit_lst):
         for j in range(pota_bs.shape[1]):
             pb.progress_bar(j,pota_bs.shape[1])
             pota = pota_bs[:,j]
-            plt.errorbar(1/np.arange(1,wtmax+1), pota, d_pota, **plot.data(i), label=fr"$w_s={wsplot[i]:.2f}$")
+            plt.errorbar(1/wt, pota[:wtmax[i]], d_pota[:wtmax[i]], **plot.data(i), label=fr"$w_s={wsplot[i]:.2f}$")
             
             min = mfit_lst[i]
             max = Mfit_lst[i]
@@ -327,8 +327,8 @@ def compute_r2F(path, wsplot):
 
 if __name__ == "__main__":
     ## basic analysis ####
-    for beta in [1.825]:
-        path_glob = f"/home/negro/projects/matching/step_scaling/L3/T42_L3_b{beta}"
+    for beta in [1.825, 1.85, 1.875, 1.9, 1.925, 1.95, 1.975]:
+        path_glob = f"/home/negro/projects/matching/step_scaling/L3/T48_L3_b{beta}"
             
         #thermalization(path_glob)
         
@@ -342,14 +342,14 @@ if __name__ == "__main__":
         #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
         #wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
         
-        wtmax = 10
+        wtmax = [20, 16, 13]
         
-        get_potential_wt(path_glob, wsplot, wtmax)
+        #get_potential_wt(path_glob, wsplot, wtmax)
         
         plot_effmass(path_glob, wtmax)
         
         mfit_lst = [2, 3, 4]
-        Mfit_lst = [10, 10, 10]
+        Mfit_lst = [18, 12, 12]
         
         fit_potential_ws(path_glob, wtmax, mfit_lst, Mfit_lst)
         boot_fit_potential_ws(path_glob, wtmax, mfit_lst, Mfit_lst)
