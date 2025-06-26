@@ -302,32 +302,33 @@ def boot_fit_polycorr(path):
     np.savetxt(f"{path}/analysis/boot_fit_res.txt", data)
 
 def format_results():
-    beta = 23.3805
-    h = 0.005
+    beta = 27.4745
+    h = 0.004
     
     path = f"/home/negro/projects/reconfinement/polycorr_Nt/b{beta}_h{h}"
     # Rmin Rmax A d_A boot_A d_boot_A E0 d_E0 boot_E0 d_boot_E0 chi2 boot_chi2 d_boot_chi2 lambda0 d_lambda0
     
-    header_line = ["Rmin", "Rmax", "A", "d_A", "boot_A", "d_boot_A", "E0", "d_E0", "boot_E0", "d_boot_E0", "chi2", "boot_chi2", "d_boot_chi2", "lambda0", "d_lambda0"]
+    header_line = ["Nt", "Rmin", "Rmax", "A", "d_A", "E0", "d_E0", "boot_E0", "d_boot_E0", "chi2red", "boot_chi2red", "d_boot_chi2red"]
     header_line = " ".join(header_line)
     
     with open(f"{path}/results_b{beta}_h{h}.txt", "w") as f:
         f.write(header_line + "\n")
     
-    fit_res = []
-    with open(f"{path}/corr_24_9_96_0.005/analysis/fit_res.txt", "r") as f:
-        for line in f:
-            fit_res.append(float(line))
-                 
-    boot_fit_res = []
-    with open(f"{path}/corr_24_9_96_0.005/analysis/boot_fit_res.txt", "r") as f:
-        for line in f:
-            boot_fit_res.append(float(line))
-            
-    formatted_result = [fit_res[0], fit_res[1]]
-    
-    with open(f"{path}/results_b{beta}_h{h}.txt", "a") as f:
-        f.write(" ".join(map(str, fit_res)))
+    for Nt in [16]:
+        fit_res = []
+        with open(f"{path}/corr_48_{Nt}_96_{h}/analysis/fit_res.txt", "r") as f:
+            for line in f:
+                fit_res.append(float(line))
+                    
+        boot_fit_res = []
+        with open(f"{path}/corr_48_{Nt}_96_{h}/analysis/boot_fit_res.txt", "r") as f:
+            for line in f:
+                boot_fit_res.append(float(line))
+                
+        formatted_result = [Nt, fit_res[0], fit_res[1], fit_res[2], fit_res[3], fit_res[4], fit_res[5], boot_fit_res[0], boot_fit_res[1], fit_res[6], boot_fit_res[2], boot_fit_res[3]]
+        
+        with open(f"{path}/results_b{beta}_h{h}.txt", "a") as f:
+            f.write(" ".join(map(str, formatted_result)) + "\n")
     
 if __name__ == "__main__":
     

@@ -323,15 +323,15 @@ def tune_r2F():
     runcoup_r1 = []
     d_runcoup_r1 = []
     
-    betas_list = [[1.6, 1.8, 2, 4, 4.05, 4.15, 4.25], [11, 11.5, 12, 12.5]]
+    betas_list = [[4, 4.05, 4.1, 4.15, 4.2, 4.25], [11, 11.5, 12, 12.5]]
 
-    plt.figure(figsize=(16,12))
+    plt.figure(figsize=(18,12))
 
     r = []
     r2F=[]
     d_r2F=[]
     
-    path = f"/home/negro/projects/matching/step_scaling/L3/T42_L3_b3"
+    path = f"/home/negro/projects/matching/step_scaling/L3/T48_L3_b3"
     
     ## r = r2
     tmp1, tmp2, tmp3 = np.loadtxt(f"{path}/analysis/r2F.txt", usecols=(0,1,2), unpack=True)
@@ -354,7 +354,7 @@ def tune_r2F():
                 
         betas = betas_list[count]
         for beta in betas:
-            path = f"/home/negro/projects/matching/step_scaling/L{Ns}/T42_L{Ns}_b{beta}"
+            path = f"/home/negro/projects/matching/step_scaling/L{Ns}/T48_L{Ns}_b{beta}"
             
             tmp1, tmp2, tmp3 = np.loadtxt(f"{path}/analysis/r2F.txt", usecols=(0,1,2), unpack=True)
             r.append(tmp1)
@@ -778,7 +778,7 @@ def plot_AC():
 def tuning_barecoup():
     path = "/home/negro/projects/matching/step_scaling/L3/"
     
-    betas = [1.4, 1.8, 1.825, 1.85, 1.875, 1.9, 1.925, 1.95, 1.975]
+    betas = [1.4, 1.8, 1.825, 1.85, 1.875, 1.9, 1.925, 1.95, 1.975, 2]
     
     # [l=1, l=2, l=3, l=4]
     r2F_r1_ac = [0.29536698, 0.19739002867530875, 0.18957441018081542, 0.18940793972490294]
@@ -840,7 +840,7 @@ def deduce_runcoup_r2(x2):
     
     path = "/home/negro/projects/matching/step_scaling/L3/"
 
-    betas = [1.4, 1.8, 1.825, 1.85, 1.875, 1.9, 1.925, 1.95, 1.975]
+    betas = [1.4, 1.8, 1.825, 1.85, 1.875, 1.9, 1.925, 1.95, 1.975, 2]
     r2F_r2_ac = 1.065914289433689
     
     r2F_r2 = []
@@ -882,7 +882,7 @@ def deduce_runcoup_r2(x2):
     
 if __name__ == "__main__":
     ## basic analysis ####
-    for beta in [1.4]:
+    for beta in [2]:
         path_glob = f"/home/negro/projects/matching/step_scaling/L3/T48_L3_b{beta}"
             
         #thermalization(path_glob)
@@ -897,24 +897,24 @@ if __name__ == "__main__":
         #wsplot = [np.sqrt(5), np.sqrt(25), np.sqrt(32)]
         #wsplot = [np.sqrt(8), np.sqrt(40), np.sqrt(72)]
         
-        wtmax = 10
+        wtmax = 24
         
         #get_potential_wt(path_glob, wsplot, wtmax)
         
         #plot_effmass(path_glob, wtmax)        
         
         min_list = [2, 3, 4]
-        max_list = [10, 10, 10]
+        max_list = [20, 16, 12]
         
-        #fit_potential_ws(path_glob, wsplot, min_list, max_list)
+        # fit_potential_ws(path_glob, wsplot, min_list, max_list)
         
-        #compute_r2F(path_glob, wsplot)  
+        # compute_r2F(path_glob, wsplot)  
     
     ######################
     
     ## second stage analysis ####
     
-    #tune_r2F()
+    tune_r2F()
 
     #path = "/home/negro/projects/matching/step_scaling/tune_b3"
     #plot_r2F_vs_rlatt(path)
@@ -923,8 +923,8 @@ if __name__ == "__main__":
     #confronto_r2F_r2_L4(4)
 
     #confronto_r2F_L3()
-    x2 = tuning_barecoup()
-    deduce_runcoup_r2(x2)
+    #x2 = tuning_barecoup()
+    #deduce_runcoup_r2(x2)
     #plot_AC()
     
     #############################
