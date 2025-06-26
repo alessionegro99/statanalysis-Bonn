@@ -387,23 +387,77 @@ def compute_r2F(path, wsplot):
     np.savetxt(f"{path}/analysis/r2F.txt", data)
         
 def tune_r2F_r2(path):
-    r2F = []
-    d_r2F = []
+    r2F_r1, r2F_r2 = [], []
     
+    d_r2F_r1, d_r2F_r2 = [], []    
     Ns_lst = [3, 4, 5]
     beta_lst = [[3], [4, 4.05, 4.1, 4.15, 4.2, 4.25], [11, 11.5, 12, 12.5]]
 
-    plt.figure(figsize=(18,12))
     for i, Ns in enumerate(Ns_lst):
+        foo, d_foo = [], []
+        goo, d_goo = [], []
+
         for beta in beta_lst[i]:
             with open(f"{path}/L{Ns}/T48_L{Ns}_b{beta}/analysis/r2F.txt", "r") as file:
-                for line in file:
-                    x = float(line.split()[0])
-                    y = float(line.split()[1])
-                    d_y = float(line.split()[2])
-                plt.errorbar(beta, y, d_y, **plot.data(i))
+                # Read first line (r1)
+                line1 = next(file)
+                y1 = float(line1.split()[1])
+                dy1 = float(line1.split()[2])
+
+                # Read second line (r2)
+                line2 = next(file)
+                y2 = float(line2.split()[1])
+                dy2 = float(line2.split()[2])
+
+                foo.append(y1)
+                d_foo.append(dy1)
+                goo.append(y2)
+                d_goo.append(dy2)
+
+        # Append per-Ns group
+        r2F_r1.append(foo)
+        d_r2F_r1.append(d_foo)
+        r2F_r2.append(goo)
+        d_r2F_r2.append(d_goo)
+
+    # fitting r2F_r2
+    plt.figure(figsize=(18,12))
+    plt.xlabel(r"$\beta$")
+    plt.ylabel(r"$r^2F(r_2,g)$")
+    for i, Ns in enumerate(Ns_lst):
+        x, y, d_y = beta_lst[i], r2F_r2[i], d_r2F_r2[i]
+        if i == 0:
+            plt.errorbar(x, y, d_y, **plot.data(i), label = fr"$N_s$={i}")
+        else:
+            bounds = -np.inf, np.inf
+            
+            def linear(x, q, m):
+                return q + m*x
+            
+            p0 = [1,-1]
+            
+            opt, cov = curve_fit(linear, x, y, sigma = d_y, absolute_sigma=True, p0=p0, bounds=bounds)
+            
+            chi2red = reg.chi2_corr(np.array(x), y, linear, np.diag(np.array(d_y)**2), opt[0], opt[1])/(len(x)-len(opt))
+
+            x_fit = np.linspace(x[0], x[-1], 100)
+            y_fit = linear(x_fit, *opt)
+                    
+            rng = np.random.default_rng(seed=8220)  
+            boot_opt = rng.multivariate_normal(opt, cov, size=500, tol=1e-10)
+                        
+            boot_y_fit = [linear(x_fit, boot_opt[i,0], boot_opt[i,1]) for i in range(200)]
+            boot_band = np.std(boot_y_fit, axis = 0, ddof=1)   
+            
+            plt.errorbar(x, y, d_y, **plot.data(i), label = fr"$N_s$={i}")
+            plt.plot(x_fit, y_fit, **plot.fit(i), label = fr"$\chi^2$={chi2red:.2f}")
+            plt.fill_between(x_fit, y_fit-boot_band, y_fit+boot_band, **plot.conf_band(i))
+    plt.grid (True, linestyle = '--', linewidth = 0.25)
+    plt.legend()
     
-    plt.show()
+    plt.savefig(f"{path}/tuning_b3/tuning_b3_r2.png", dpi=300, bbox_inches='tight')    
+
+    plt.show()     
 
 if __name__ == "__main__":
     ## basic analysis ####
@@ -434,7 +488,7 @@ if __name__ == "__main__":
         mfit_lst = [4, 5, 6]
         Mfit_lst = [24, 24, 24]
         
-        boot_fit_potential_ws(path_glob, wtmax, mfit_lst, Mfit_lst)
+        #boot_fit_potential_ws(path_glob, wtmax, mfit_lst, Mfit_lst)
 
         # compute_r2F(path_glob, wsplot)   
     
