@@ -24,38 +24,8 @@ def readfile(path):
     
     return np.column_stack(columns)
 
-def thermalization(path): 
-    output = np.loadtxt(f'{path}/data/dati_0.dat', skiprows=1)
-    columns = [output[:, i] for i in range(output.shape[1])]
-
-    # plaqs plaqt W(wt=1,ws=1) ... W(wt=10,ws=1) W(wt=1,ws=sqrt(5)) ... W(wt=10,ws=sqrt(5)) W(wt=10,ws=1) W(wt=1,ws=sqrt(8)) ... W(wt=10,ws=sqrt(8))
-    
-    data = np.column_stack(columns)
-    
-    foo = data[:,4 + 5 + 3*5]
-    
-    x = np.arange(0,len(foo), len(foo)//500)
-    y = foo[0:len(foo):len(foo)//500]
-
-    plt.figure(figsize=(18,12))
-    plt.plot(x, y
-             , marker = 'o'
-             , linestyle = '-', linewidth = 0.375
-             , markersize = 2
-             , color = plot.color_dict[1])
-    
-    plt.xlabel(r'$t_i$')
-    plt.gca().yaxis.set_label_coords(-0.1, 0.5)
-            
-    plt.xticks(rotation=0)  
-    plt.yticks(rotation=0) 
-    
-    plt.grid (True, linestyle = '--', linewidth = 0.25)
-
-    plt.savefig(f"{path}/analysis/thermalization.png", dpi=300, bbox_inches='tight')
- 
 def plot_thermalization(path):
-    x,y = np.loadtxt(f"{path}/analysis/thermalization.txt", )
+    x,y = np.loadtxt(f"{path}/analysis/thermalization.txt")
         
     plt.figure(figsize=(18,12))
     plt.plot(x, y
@@ -74,6 +44,24 @@ def plot_thermalization(path):
 
     plt.savefig(f"{path}/analysis/thermalization.png", dpi=300, bbox_inches='tight')
         
+def plot_blocksize_analysis_primary(path, dist):
+    data = np.load(f"{path}/analysis/blocksize_analysis_{dist}.npy", allow_pickle=True)
+    
+    x,y,d_y = data[0], data[1], data[2]
+        
+    plt.figure(figsize=(18,12))
+    plt.errorbar(x, y, d_y
+             , marker = 'o'
+             , linestyle = '-', linewidth = 0.375
+             , markersize = 2
+             , color = plot.color_dict[1])
+    
+    plt.xlabel(r'blocksize')   
+    plt.ylabel(r'$std_{err}$')             
+    plt.grid (True, linestyle = '--', linewidth = 0.25)
+
+    plt.savefig(f"{path}/analysis/blocksize_analysis_primary_{dist}.png", dpi=300, bbox_inches='tight')
+
 def get_potential_wt(path, wsplot, wtmax):
     data = readfile(path)
     def id(x):
@@ -391,7 +379,9 @@ def tune_r2F_r2(path):
     
     d_r2F_r1, d_r2F_r2 = [], []    
     Ns_lst = [3, 4, 5, 7]
-    beta_lst = [[3], [4, 4.05, 4.1, 4.15, 4.2, 4.25], [11, 11.5, 12, 12.5], [15]]
+    beta_lst = [[3], [4, 4.05, 4.1, 4.15, 4.2, 4.25], [11, 11.5, 12, 12.5], [10, 11, 12]]
+    
+    x_cl, y_cl, d_y_cl = [], [], []
 
     for i, Ns in enumerate(Ns_lst):
         foo, d_foo = [], []
@@ -420,38 +410,53 @@ def tune_r2F_r2(path):
         r2F_r2.append(goo)
         d_r2F_r2.append(d_goo)
 
+    beta_match_lst = []
+
     # fitting r2F_r2
     plt.figure(figsize=(18,12))
     plt.xlabel(r"$\beta$")
     plt.ylabel(r"$r^2F(r_2,g)$")
     for i, Ns in enumerate(Ns_lst):
         x, y, d_y = beta_lst[i], r2F_r2[i], d_r2F_r2[i]
-        if i == 0 or i == 3:
-            plt.errorbar(x, y, d_y, **plot.data(i), label = fr"$N_s$={i}")
+        if i == 0:
+            plt.errorbar(x, y, d_y, **plot.data(i+1), label = fr"$N_s$={Ns}")
         else:
             bounds = -np.inf, np.inf
             
             def linear(x, q, m):
                 return q + m*x
             
-            p0 = [1,-1]
+            def quadratic(x, a, b, c):
+                return a + b*x + c*x**2
             
-            opt, cov = curve_fit(linear, x, y, sigma = d_y, absolute_sigma=True, p0=p0, bounds=bounds)
+            p0 = [1,-1, 1]
             
-            chi2red = reg.chi2_corr(np.array(x), y, linear, np.diag(np.array(d_y)**2), opt[0], opt[1])/(len(x)-len(opt))
+            opt, cov = curve_fit(quadratic, x, y, sigma = d_y, absolute_sigma=True, p0=p0, bounds=bounds)
+            chi2red = reg.chi2_corr(np.array(x), y, quadratic, np.diag(np.array(d_y)**2), opt[0], opt[1], opt[2])/(len(x)-len(opt))
+            
+            beta_match = (-opt[1] - np.sqrt(opt[1]**2-4*(opt[0]-r2F_r2[0])*opt[2]))/(2*opt[2])
+            beta_match_lst.append(beta_match) 
+            
 
             x_fit = np.linspace(x[0], x[-1], 100)
-            y_fit = linear(x_fit, *opt)
+            y_fit = quadratic(x_fit, *opt)
                     
             rng = np.random.default_rng(seed=8220)  
             boot_opt = rng.multivariate_normal(opt, cov, size=500, tol=1e-10)
                         
-            boot_y_fit = [linear(x_fit, boot_opt[i,0], boot_opt[i,1]) for i in range(200)]
-            boot_band = np.std(boot_y_fit, axis = 0, ddof=1)   
+            boot_y_fit = [quadratic(x_fit, boot_opt[j,0], boot_opt[j,1], boot_opt[j,2]) for j in range(200)]
+            boot_band = np.std(boot_y_fit, axis = 0, ddof=1)
             
-            plt.errorbar(x, y, d_y, **plot.data(i), label = fr"$N_s$={i}")
-            plt.plot(x_fit, y_fit, **plot.fit(i), label = fr"$\chi^2$={chi2red:.2f}")
-            plt.fill_between(x_fit, y_fit-boot_band, y_fit+boot_band, **plot.conf_band(i))
+            foo = [quadratic(beta_match, boot_opt[i,0], boot_opt[i,1], boot_opt[i,2]) for i in range(200)]
+            goo = np.std(foo, axis = 0, ddof=1)
+            
+            plt.errorbar(beta_match, r2F_r2[0], goo, **plot.data(0))
+            
+            plt.errorbar(x, y, d_y, **plot.data(i+1), label = fr"$N_s$={Ns}")
+            plt.plot(x_fit, y_fit, **plot.fit(i+1), label = fr"$\chi^2$={chi2red:.2f}")
+            plt.fill_between(x_fit, y_fit-boot_band, y_fit+boot_band, **plot.conf_band(i+1))
+            
+    plt.hlines(y=r2F_r2[0], xmin=beta_lst[0], xmax=max(beta_match_lst), color='black', linestyle='-.')    
     plt.grid (True, linestyle = '--', linewidth = 0.25)
     plt.legend()
     
@@ -463,49 +468,66 @@ def tune_r2F_r2(path):
     plt.ylabel(r"$r^2F(r_1,g)$")
     for i, Ns in enumerate(Ns_lst):
         x, y, d_y = beta_lst[i], r2F_r1[i], d_r2F_r1[i]
-        if i == 0 or i == 3:
-            plt.errorbar(x, y, d_y, **plot.data(i), label = fr"$N_s$={i}")
-        else:
-            bounds = -np.inf, np.inf
-            
-            def linear(x, q, m):
-                return q + m*x
-            
-            p0 = [1,-1]
-            
-            opt, cov = curve_fit(linear, x, y, sigma = d_y, absolute_sigma=True, p0=p0, bounds=bounds)
-            
-            chi2red = reg.chi2_corr(np.array(x), y, linear, np.diag(np.array(d_y)**2), opt[0], opt[1])/(len(x)-len(opt))
+        if i == 0:
+            plt.errorbar(x, y, d_y, **plot.data(i+1), label = fr"$N_s$={Ns}")
+            y_cl.append(y)
+            d_y_cl.append(np.array(d_y))
+        else:            
+            opt, cov = curve_fit(quadratic, x, y, sigma = d_y, absolute_sigma=True, p0=p0, bounds=bounds)
+
+            chi2red = reg.chi2_corr(np.array(x), y, quadratic, np.diag(np.array(d_y)**2), opt[0], opt[1], opt[2])/(len(x)-len(opt))
 
             x_fit = np.linspace(x[0], x[-1], 100)
-            y_fit = linear(x_fit, *opt)
+            y_fit = quadratic(x_fit, *opt)
                     
             rng = np.random.default_rng(seed=8220)  
             boot_opt = rng.multivariate_normal(opt, cov, size=500, tol=1e-10)
                         
-            boot_y_fit = [linear(x_fit, boot_opt[i,0], boot_opt[i,1]) for i in range(200)]
-            boot_band = np.std(boot_y_fit, axis = 0, ddof=1)   
+            boot_y_fit = [quadratic(x_fit, boot_opt[j,0], boot_opt[j,1], boot_opt[j,2]) for j in range(200)]
+            boot_band = np.std(boot_y_fit, axis = 0, ddof=1)
             
-            plt.errorbar(x, y, d_y, **plot.data(i), label = fr"$N_s$={i}")
-            plt.plot(x_fit, y_fit, **plot.fit(i), label = fr"$\chi^2$={chi2red:.2f}")
-            plt.fill_between(x_fit, y_fit-boot_band, y_fit+boot_band, **plot.conf_band(i))
+            foo = [quadratic(beta_match_lst[i-1], boot_opt[j,0], boot_opt[j,1], boot_opt[j,2]) for j in range(200)]
+            goo = np.std(foo, axis = 0, ddof=1)
+            plt.errorbar(beta_match_lst[i-1], quadratic(beta_match_lst[i-1], *opt), goo, **plot.data(0))
+            y_cl.append(quadratic(beta_match_lst[i-1], *opt))
+            d_y_cl.append(np.array(goo))
+            
+            plt.errorbar(x, y, d_y, **plot.data(i+1), label = fr"$N_s$={Ns}")
+            plt.plot(x_fit, y_fit, **plot.fit(i+1), label = fr"$\chi^2$={chi2red:.2f}")
+            plt.fill_between(x_fit, y_fit-boot_band, y_fit+boot_band, **plot.conf_band(i+1))
+            
     plt.grid (True, linestyle = '--', linewidth = 0.25)
     plt.legend()
     
     plt.savefig(f"{path}/tuning_b3/tuning_b3_r1.png", dpi=300, bbox_inches='tight')    
 
-    plt.show()  
+    plt.figure(figsize = (18,12))
+    x = np.array([1, 2**0.5, 5**0.5, 8**0.5])
+    plt.errorbar(1/x**2, np.concatenate(y_cl), np.array(d_y_cl).flatten(), **plot.data(0))
+    plt.ylabel(r"$r_1^2F(r_1,g)$")
+    plt.xlabel(r"$r^2_{latt}$")
+    plt.savefig(f"{path}/tuning_b3/continuum_limit.png", dpi=300, bbox_inches='tight')    
+
+def collapse_plot(path):
+    opt = np.load(f"{path}/analysis/opt.npy", allow_pickle=True)
+    
+    pot = opt[0]
+    boot_pot = opt[1]
+    
+    return pot
 
 if __name__ == "__main__":
-    ## basic analysis ####
+    
+    # first stage
     Ns = 7
-    for beta in [15]:
+    
+    for beta in []:
         path_glob = f"/home/negro/projects/matching/step_scaling/L{Ns}/T48_L{Ns}_b{beta}"
                                 
-        #plot_thermalization(path_glob)
+        plot_thermalization(path_glob)
         
-        #blocksize_analysis_primary(path)
-        #blocksize_analysis_secondary(path)
+        for dist in ["r1", "r2", "r3"]:
+            plot_blocksize_analysis_primary(path_glob, dist)
         
         if Ns==3:
             wsplot = [1, np.sqrt(5), np.sqrt(8)]
@@ -518,21 +540,23 @@ if __name__ == "__main__":
         
         wtmax = [24, 24, 24]
                 
-        # plot_effmass(path_glob, wtmax)
+        plot_effmass(path_glob, wtmax)
         
-        # plot_find_tmin(path_glob)
+        plot_find_tmin(path_glob)
             
         mfit_lst = [4, 8, 8]
         Mfit_lst = [24, 24, 24]
         
-        #boot_fit_potential_ws(path_glob, wtmax, mfit_lst, Mfit_lst)
+        boot_fit_potential_ws(path_glob, wtmax, mfit_lst, Mfit_lst)
 
-        #compute_r2F(path_glob, wsplot)   
-    
-    ## second stage 
-    
-    path_ss = f"/home/negro/projects/matching/step_scaling"
-    
-    tune_r2F_r2(path_ss)
-
+        compute_r2F(path_glob, wsplot)   
         
+    Ns = 7
+    
+    for beta in []:
+    
+        # second stage 
+        path_ss = f"/home/negro/projects/matching/step_scaling"
+        
+        tune_r2F_r2(path_ss)
+

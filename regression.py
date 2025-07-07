@@ -388,6 +388,7 @@ def chi2_corr(x, y, model, C_ij, *params):
     Returns:
     - chi2
     """
+    x = np.array(x, dtype=float) 
     residuals = y - model(x, *params)
     
     chi2 = np.sum(residuals * (np.linalg.inv(C_ij) @ residuals))
