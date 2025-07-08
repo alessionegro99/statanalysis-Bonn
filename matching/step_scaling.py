@@ -37,7 +37,6 @@ def thermalization(path, wt_max, ws_max, type='planar'):
         filename = 'sWloop' 
                   
     for ws in range(ws_max):
-        pb.progress_bar(ws, ws_max)
         for wt in range(wt_max//3):
             output = np.loadtxt(f'{path}/data/{filename}_0.dat', skiprows=1)
             Wloop_wt_ws = output[:, wt + wt_max*ws]
@@ -74,7 +73,6 @@ def bsa_potential(path, wt_max, ws_max, type='planar'):
         return x
     
     for ws in range(ws_max):
-        pb.progress_bar(ws, ws_max)
         for wt in range(wt_max//3):
             Wloop = data[:, wt + wt_max*ws]
 
@@ -114,7 +112,7 @@ def bsa_potential(path, wt_max, ws_max, type='planar'):
             plt.savefig(f"{path}/analysis/bsa_{type}/bsa_{filename}_wt{wt}_ws{ws}.png", bbox_inches='tight')
             plt.close()
             
-def get_potential (path, wt_max, ws_max, type='planar'):
+def get_potential (path, wt_max, ws_max, wsplot=None, type='planar'):
     if type == 'planar':
         filename = 'Wloop'
     else:
@@ -127,7 +125,7 @@ def get_potential (path, wt_max, ws_max, type='planar'):
     if type == 'planar':
         wsplot = np.arange(1,ws_max+1)
     elif type == 'staircase':
-        wsplot = np.arange(1,ws_max+1)*np.sqrt(2)
+        wsplot = wsplot
         
     seed = 8220
     samples = 1000
@@ -151,14 +149,15 @@ def get_potential (path, wt_max, ws_max, type='planar'):
                 eps=1e-10
                 return -np.log(np.clip(x, eps, None))/(wt+1)
             
-            _, err, bs = boot.bootstrap_for_secondary(potential, blocksize, samples, 1, args, seed=seed, returnsamples=1)
+            _, err, bs = boot.bootstrap_for_secondary(potential, blocksize, samples, 0, args, seed=seed, returnsamples=1)
         
-            sys.stdout.write(f"Currently bootstrapping w_t={wt+1}/{wt_max}, w_s={wsplot[ws]:.2f}.")
+            sys.stdout.write(f"Currently bootstrapping w_t={wt+1}/{wt_max}, w_s={wsplot[ws]:.2f}.\n")
+            sys.stdout.flush()
 
             V_ws.append(potential(np.mean(W)))
             d_V_ws.append(err)
             V_bs_ws.append(bs)
-                
+        
         V.append(V_ws)
         d_V.append(d_V_ws)
         V_bs.append(V_bs_ws)
@@ -213,8 +212,6 @@ def find_wtmin(path, ws_max_plot, wt_start, wt_end, type='planar'):
     
     res, d_res, boot_res = map(np.array, data[1:4])
     
-
-    
     plt.figure(figsize=(18,12))
     
     plt.xlabel(r'$w_{t,min}$')
@@ -234,7 +231,6 @@ def find_wtmin(path, ws_max_plot, wt_start, wt_end, type='planar'):
             boot_pot = []
 
             for j in range(n_boot):
-                pb.progress_bar(j,n_boot)
                 y_fit = boot_y_fit[:,j]
                 
                 opt_j, _ = curve_fit(model, x_fit, y_fit, sigma=d_y_fit, absolute_sigma=True)
@@ -245,8 +241,9 @@ def find_wtmin(path, ws_max_plot, wt_start, wt_end, type='planar'):
             dp.append(pot)
             d_dp.append(d_pot)
         
-        plt.errorbar(range(wt_start, wt_end-4), dp, d_dp, **plot.data(i))
+        plt.errorbar(range(wt_start, wt_end-4), dp, d_dp, **plot.data(i), label=i)
            
+    plt.legend
     plt.grid (True, linestyle = '--', linewidth = 0.25)
     plt.savefig(f"{path}/analysis/find_wtmin_{type}.png", dpi=300, bbox_inches='tight')    
 
@@ -300,7 +297,6 @@ def extrap_potential(path, wt_max_plot, ws_max_plot, wt_min_fit, wt_max_fit, typ
         boot_pot, boot_cov, boot_band, boot_c2r = [], [], [], []
 
         for j in range(n_boot):
-            pb.progress_bar(j,n_boot)
             y_fit = boot_y_fit[:,j]
             
             opt_j, cov_j = curve_fit(model, x_fit, y_fit, sigma=d_y_fit, absolute_sigma=True, p0=p0, bounds=bounds)
@@ -310,7 +306,7 @@ def extrap_potential(path, wt_max_plot, ws_max_plot, wt_min_fit, wt_max_fit, typ
             boot_pot.append(opt_j[0])
             boot_cov.append(cov_j[0][0]**0.5)
             boot_c2r.append(c2r_j)
-            boot_band.append(model(x_linsp_fit, opt[0], opt[1]))
+            boot_band.append(model(x_linsp_fit, *opt_j))
         
         boot_band = np.std(boot_band, axis=0, ddof=1)
         plt.fill_between(x_linsp_fit, y_linsp_fit-boot_band, y_linsp_fit+boot_band, **plot.conf_band(i))
@@ -328,24 +324,47 @@ def extrap_potential(path, wt_max_plot, ws_max_plot, wt_min_fit, wt_max_fit, typ
     save = np.array([wsplot, pot, boot_pot_glob], dtype=object)
     np.save(f"{path}/analysis/opt_{type}", save)
 
+def compute_r2F(path, Ns=3):    
+    planar = np.load(f"{path}/analysis/opt_planar.npy", allow_pickle=True)
+    staircase = np.load(f"{path}/analysis/opt_staircase.npy", allow_pickle=True)
+    
+    ws, pot, boot_pot = [], [], []
+    
+    print(staircase[0])
+    
+    if Ns == 3:
+        ws.extend([planar[0][0], staircase[0][1], staircase[0][-1]])
+        pot.extend([planar[1][0], staircase[1][1], staircase[1][-1]])
+        boot_pot.extend([planar[2][0], staircase[2][1], staircase[2][-1]])
+    if Ns == 4:
+        ws.extend([staircase[0][0], staircase[0][3], staircase[0][-1]])
+        pot.extend([staircase[1][0], staircase[1][3], staircase[1][-1]])
+        boot_pot.extend([staircase[2][0], staircase[2][3], staircase[2][-1]])
+    if Ns == 5:
+        ws.extend([staircase[0][1], staircase[0][8], staircase[0][-1]])
+        pot.extend([staircase[1][1], staircase[1][8], staircase[1][-1]])
+        boot_pot.extend([staircase[2][1], staircase[2][8], staircase[2][-1]])
+    if Ns == 7:
+        ws.extend([staircase[0][2], staircase[0][15], staircase[0][-1]])
+        pot.extend([staircase[1][2], staircase[1][15], staircase[1][-1]])
+        boot_pot.extend([staircase[2][2], staircase[2][15], staircase[2][-1]])
+        
+        
+    r2F_r1 = ws[0]**2*(pot[1]-pot[0])/(ws[1]-ws[0])
+    r2F_r2 = ws[1]**2*(pot[2]-pot[1])/(ws[2]-ws[1])
+    
+    boot_r2F_r1 = ws[0]**2*(np.array(boot_pot[1])-np.array(boot_pot[0]))/(ws[1]-ws[0])
+    boot_r2F_r2 = ws[1]**2*(np.array(boot_pot[2])-np.array(boot_pot[1]))/(ws[2]-ws[1])
+    
+    data = np.array([[ws[0], ws[1]], [r2F_r1, r2F_r2], [boot_r2F_r1, boot_r2F_r2]], dtype=object)
+    
+    d_r2F_r1 = np.std(boot_r2F_r1, ddof=1)
+    d_r2F_r2 = np.std(boot_r2F_r2, ddof=1)
 
-
-# def compute_r2F(path, wsplot):    
-#     pot = np.loadtxt(f"{path}/analysis/extrap_potential_ws.txt", usecols=(1), unpack=True)
-#     boot_pot = np.loadtxt(f"{path}/analysis/boot_potential_ws.txt")
-
-#     r2F_r1 = wsplot[0]**2*(pot[1]-pot[0])/(wsplot[1]-wsplot[0])
-#     r2F_r2 = wsplot[1]**2*(pot[2]-pot[1])/(wsplot[2]-wsplot[1])
+    print("r1 r2 r2F_r1 d_r2F_r1 r2F_r2 d_r2F_r2")
+    print(ws[0], ws[1], r2F_r1, d_r2F_r1, r2F_r2, d_r2F_r2)
     
-#     boot_r2F_r1 = wsplot[0]**2*(boot_pot[:,1]-boot_pot[:,0])/(wsplot[1]-wsplot[0])
-#     boot_r2F_r2 = wsplot[1]**2*(boot_pot[:,2]-boot_pot[:,1])/(wsplot[2]-wsplot[1])
-    
-#     d_r2F_r1 = np.std(boot_r2F_r1, ddof=1)
-#     d_r2F_r2 = np.std(boot_r2F_r2, ddof=1)
-    
-#     data = np.column_stack((np.array([wsplot[0], wsplot[1]]), np.array([r2F_r1, r2F_r2]), np.array([d_r2F_r1, d_r2F_r2])))
-    
-#     np.savetxt(f"{path}/analysis/r2F.txt", data)
+    np.save(f"{path}/analysis/r2F", data)
     
 # def tune_r2F():
 #     Ns_list=[4, 5]
@@ -919,7 +938,7 @@ def planarpot(path):
     type = 'planar'
     
     wt_max = 48
-    ws_max = 2
+    ws_max = 6
     
     if not os.path.isdir(f"{path}/analysis/therm_{type}/"):
         thermalization(path, wt_max, ws_max, type = type)
@@ -927,25 +946,27 @@ def planarpot(path):
     if not os.path.isdir(f"{path}/analysis/bsa_{type}/"):
         bsa_potential(path, wt_max, ws_max, type = type)
     
-    ws_max_plot = 2
-    wt_max_plot = [32]*ws_max_plot
+    ws_max_plot = 6
+    wt_max_plot = [40]*ws_max_plot
     
     if not os.path.isfile(f"{path}/analysis/planar_potential_wt.npy"):
          get_potential(path, wt_max, ws_max, type=type)
     
     plot_potential(path, wt_max_plot, ws_max_plot, type=type)
 
-    wt_min_fit = [4] * ws_max_plot
-    wt_max_fit = [24] * ws_max_plot
+    wt_min_fit = [6] * ws_max_plot
+    wt_max_fit = [40]*ws_max_plot
     
-    find_wtmin(path, ws_max_plot, 2, 24, type='planar')
+    if not os.path.isfile(f"{path}/analysis/find_wtmin_{type}.png"):
+        find_wtmin(path, ws_max_plot, 2, 24, type='planar')
+        
     extrap_potential(path, wt_max_plot, ws_max_plot, wt_min_fit, wt_max_fit, type=type)
 
-def staircase(path):    
+def staircase(path, wsplot):    
     type = 'staircase'
     
     wt_max = 48
-    ws_max = 3
+    ws_max = 21
     
     if not os.path.isdir(f"{path}/analysis/therm_{type}/"):
         thermalization(path, wt_max, ws_max, type = type)
@@ -953,18 +974,19 @@ def staircase(path):
     if not os.path.isdir(f"{path}/analysis/bsa_{type}/"):
         bsa_potential(path, wt_max, ws_max, type = type)
     
-    ws_max_plot = 3
-    wt_max_plot = [24] * ws_max_plot
+    ws_max_plot = 21
+    wt_max_plot = [36] * ws_max
     
     if not os.path.isfile(f"{path}/analysis/staircase_potential_wt.npy"):
-        get_potential(path, wt_max, ws_max, type=type)
-        
+        get_potential(path, wt_max, ws_max, wsplot=wsplot, type=type)
+    
     plot_potential(path, wt_max_plot, ws_max_plot, type=type)
 
-    wt_min_fit = [4] * ws_max_plot
-    wt_max_fit = [24] * ws_max_plot
+    wt_min_fit = [8] * ws_max_plot
+    wt_max_fit = [36] * ws_max_plot
     
-    find_wtmin(path, ws_max_plot, 2, 24, type='staircase')
+    if not os.path.isfile(f"{path}/analysis/find_wtmin_{type}.png"):
+        find_wtmin(path, ws_max_plot, 2, 24, type='staircase')
     extrap_potential(path, wt_max_plot, ws_max_plot, wt_min_fit, wt_max_fit, type=type)
 
 def plotfit_potential(path, fit = 'false'):   
@@ -996,7 +1018,6 @@ def plotfit_potential(path, fit = 'false'):
         
         x_fit = np.linspace(min(x), max(x), 100)
         
-
         by = np.concatenate([bpy, bsy])
         
         boot_opt, boot_band = [], []
@@ -1033,16 +1054,30 @@ def plotfit_potential(path, fit = 'false'):
     plt.savefig(f"{path}/analysis/potential.png", dpi=300, bbox_inches='tight')    
 
 if __name__ == "__main__":
-    path_glob = f"/home/negro/projects/matching/step_scaling/Nt48/Ns3_x0_0_y0_0"
+    Ns = 5
+    beta = 12
+    
+    path_glob = f"/home/negro/projects/matching/step_scaling/CLSS/Nt48_Ns{Ns}/b{beta}"
     
     if not os.path.isfile(f"{path_glob}/analysis/Wloop.dat"):
             if not os.path.isfile(f"{path_glob}/analysis/sWloop.dat"):
-                concatenate.concatenate(f"{path_glob}/data", 500, f"{path_glob}/analysis")
+                concatenate.concatenate(f"{path_glob}/data", 2000, f"{path_glob}/analysis")
     
     ## planar
-    planarpot(path_glob)
+    #planarpot(path_glob)
 
     ## staircase
-    staircase(path_glob)
+    wsplot = np.array([np.sqrt(i**2 + j**2) for i in range(1,Ns) for j in range(1,i+1)])
 
-    plotfit_potential(path_glob)
+    #staircase(path_glob, wsplot=wsplot)
+
+    #plotfit_potential(path_glob)
+    
+    compute_r2F(path_glob, Ns=Ns)
+    
+    x = [3, 4, 12, 12]
+    y = [0.424, 0.489, 0.52, 0.404]
+    d_y = [0.062, 0.088, 0.050, 0.048]
+    plt.figure()
+    plt.errorbar(x, y, d_y, **plot.data(4))
+    plt.show()
