@@ -932,6 +932,75 @@ def compute_r2F(path, Ns=3):
  
 #  ## main
  
+def fit_staircase(path, lim_inf):
+    staircase = np.load(f"{path}/analysis/opt_staircase.npy", allow_pickle=True)
+    
+    x = staircase[0]
+    y = staircase[1]
+    b_y = staircase[2]
+    d_y = [np.std(b_y[j], ddof=1) for j in range(len(b_y))]    
+    
+    def luscher_pot(x, a, b, c):
+        return a + b*x + c/x
+    def log_pot(x, a, b, c):
+        return a + b*x + c*np.log(x)
+    
+    x_linsp_log, y_linsp_log, d_y_linsp_log, opt_log, d_opt_log, c2r_log, d_c2r_log = boot_fit(x, y, d_y, b_y, model=log_pot, lim_inf=lim_inf)
+    x_linsp_lusc, y_linsp_lusc, d_y_linsp_lusc, opt_lusc, d_opt_lusc, c2r_lusc, d_c2r_lusc = boot_fit(x, y, d_y, b_y, model=luscher_pot, lim_inf=lim_inf)
+
+    plt.figure(figsize=(18,12))
+    
+    plt.errorbar(x, y, d_y, **plot.data(0))#
+    
+    plt.plot(x_linsp_log, y_linsp_log, **plot.fit(1), label=fr"a+b*x+c*ln(x), $\sigma$={opt_log[1]:.4g}({d_opt_log[1]:.2g}), $\chi2/\nu$={c2r_log:.2g}({d_c2r_log:.2g})")
+    plt.fill_between(x_linsp_log, y_linsp_log-d_y_linsp_log,y_linsp_log+d_y_linsp_log, **plot.conf_band(1))
+    
+    plt.plot(x_linsp_lusc, y_linsp_lusc, **plot.fit(2), label=fr"a+b*x+c/x, $\sigma$={opt_lusc[1]:.4g}({d_opt_lusc[1]:.2g}), $\chi2/\nu$={c2r_lusc:.2g}({d_c2r_lusc:.2g})")
+    plt.fill_between(x_linsp_lusc, y_linsp_lusc-d_y_linsp_lusc,y_linsp_lusc+d_y_linsp_lusc, **plot.conf_band(2))
+    
+    plt.legend()    
+    
+    plt.savefig(f"{path}/analysis/fit_staircase.png", dpi=300, bbox_inches='tight')    
+    
+    
+def boot_fit(x, y, d_y, b_y, model, lim_inf):
+    x_fit, y_fit, d_y_fit, b_y_fit = x[lim_inf:], y[lim_inf:], d_y[lim_inf:], b_y[lim_inf:]
+    opt, cov = curve_fit(model, x_fit, y_fit, sigma=d_y_fit, absolute_sigma=True)
+    
+    n_boot = len(b_y[0])
+
+    x_linsp = np.linspace(x[0], x[-1], 100)
+    y_linsp = model(x_linsp, *opt)
+    
+    b_opt_log = []
+    b_c2r = []
+    b_y_linsp = []
+    
+    for j in range(n_boot):
+        y_fit_j = [b_y_fit[i][j] for i in range(len(b_y_fit))] 
+        
+        opt_j, cov_j = curve_fit(model, x_fit, y_fit_j, sigma=d_y_fit, absolute_sigma=True)
+        
+        b_c2r.append(reg.chi2_corr(x_fit, y_fit_j, model, np.diag(np.array(d_y_fit)**2), *opt_j))
+        
+        b_opt_log.append(opt_j)
+        
+        y_linsp_j = model(x_linsp, *opt_j)
+        
+        b_y_linsp.append(y_linsp_j)
+    
+    
+    b_opt = b_opt_log
+    d_opt = np.std(b_opt_log, axis=0, ddof=1)
+    
+    c2r = reg.chi2_corr(x_fit, y_fit, model, np.diag(np.array(d_y_fit)**2), *opt)
+    d_c2r = np.std(b_c2r, ddof=1)
+    
+    d_y_linsp = np.std(b_y_linsp, axis=0, ddof=1)
+    
+    return x_linsp, y_linsp, d_y_linsp, opt, d_opt, c2r, d_c2r       
+    
+    
 ## main
 
 def planarpot(path):
@@ -966,7 +1035,7 @@ def staircase(path, wsplot):
     type = 'staircase'
     
     wt_max = 48
-    ws_max = 21
+    ws_max = 21 # 21 for Ns 7 10 for Ns 5 
     
     if not os.path.isdir(f"{path}/analysis/therm_{type}/"):
         thermalization(path, wt_max, ws_max, type = type)
@@ -975,15 +1044,15 @@ def staircase(path, wsplot):
         bsa_potential(path, wt_max, ws_max, type = type)
     
     ws_max_plot = 21
-    wt_max_plot = [36] * ws_max
+    wt_max_plot = [40] * ws_max
     
     if not os.path.isfile(f"{path}/analysis/staircase_potential_wt.npy"):
         get_potential(path, wt_max, ws_max, wsplot=wsplot, type=type)
     
     plot_potential(path, wt_max_plot, ws_max_plot, type=type)
 
-    wt_min_fit = [8] * ws_max_plot
-    wt_max_fit = [36] * ws_max_plot
+    wt_min_fit = [16] * ws_max_plot
+    wt_max_fit = [24]* ws_max_plot
     
     if not os.path.isfile(f"{path}/analysis/find_wtmin_{type}.png"):
         find_wtmin(path, ws_max_plot, 2, 24, type='staircase')
@@ -1054,7 +1123,7 @@ def plotfit_potential(path, fit = 'false'):
     plt.savefig(f"{path}/analysis/potential.png", dpi=300, bbox_inches='tight')    
 
 if __name__ == "__main__":
-    Ns = 5
+    Ns = 7
     beta = 12
     
     path_glob = f"/home/negro/projects/matching/step_scaling/CLSS/Nt48_Ns{Ns}/b{beta}"
@@ -1063,21 +1132,16 @@ if __name__ == "__main__":
             if not os.path.isfile(f"{path_glob}/analysis/sWloop.dat"):
                 concatenate.concatenate(f"{path_glob}/data", 2000, f"{path_glob}/analysis")
     
-    ## planar
-    #planarpot(path_glob)
+    # ## planar
+    # planarpot(path_glob)
 
-    ## staircase
+    # ## staircase
     wsplot = np.array([np.sqrt(i**2 + j**2) for i in range(1,Ns) for j in range(1,i+1)])
 
-    #staircase(path_glob, wsplot=wsplot)
+    staircase(path_glob, wsplot=wsplot)
 
-    #plotfit_potential(path_glob)
+    plotfit_potential(path_glob)
     
-    compute_r2F(path_glob, Ns=Ns)
+    # compute_r2F(path_glob, Ns=Ns)
     
-    x = [3, 4, 12, 12]
-    y = [0.424, 0.489, 0.52, 0.404]
-    d_y = [0.062, 0.088, 0.050, 0.048]
-    plt.figure()
-    plt.errorbar(x, y, d_y, **plot.data(4))
-    plt.show()
+    fit_staircase(path_glob, lim_inf=0)

@@ -125,7 +125,7 @@ def bootstrap_for_secondary(func2, block, samples, show_progressbar, *args, seed
   else:
     return ris, err
 
-def blocksize_analysis_primary(vec_in, samples, block_vec, savefig=0, path=None):      
+def blocksize_analysis_primary(vec_in, samples, block_vec, savefig=0, path=None, extra=''):      
   """Blocksize analysis for primary observables.
   
   Given a numpy vector "vec_in", 
@@ -166,7 +166,7 @@ def blocksize_analysis_primary(vec_in, samples, block_vec, savefig=0, path=None)
     # bootstrap samples of the standard error
     d_err.append(np.std(tmp))
         
-  plt.figure(figsize=(16,12))
+  plt.figure(figsize=(18,12))
   plt.errorbar(block_range, err, yerr=d_err,
                 fmt='o-', capsize=3, 
                 markersize=2, linewidth=0.375,
@@ -182,7 +182,8 @@ def blocksize_analysis_primary(vec_in, samples, block_vec, savefig=0, path=None)
   if savefig==0:
     plt.show()
   elif savefig==1:
-    plt.savefig(f'{path}/blocksize_analysis.png',  dpi=300, bbox_inches='tight')
+    plt.savefig(f'{path}/blocksize_analysis_{extra}.png',  dpi=300, bbox_inches='tight')
+    plt.close()
   
 #***************************
 # unit testing
