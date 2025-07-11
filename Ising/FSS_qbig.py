@@ -83,9 +83,9 @@ if __name__ == "__main__":
                 get_bsa(path, i, beta)
         
         ## magnetization
-        if not os.path.isfile(f"{path}/analysis/mag.npy"):
+        if not os.path.isdir(f"{path}/analysis/mag/"):
             for i, beta in enumerate(beta_lst):                
-                get_mag(path, i, bs)
+                get_mag(path, i, beta, bs)
     
     
     
