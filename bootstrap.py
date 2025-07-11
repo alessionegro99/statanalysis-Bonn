@@ -165,27 +165,27 @@ def blocksize_analysis_primary(vec_in, samples, block_vec, savefig=0, path=None,
     # the error on the standard error is the standard deviation on the
     # bootstrap samples of the standard error
     d_err.append(np.std(tmp))
-        
-  plt.figure(figsize=(18,12))
-  plt.errorbar(block_range, err, yerr=d_err,
-                fmt='o-', capsize=3, 
-                markersize=2, linewidth=0.375,
-                color=plot.color_dict[1])
     
-  plt.xlabel(r'$K$')
-  plt.ylabel(r'$\overline{\sigma}_{\overline{F^{(K)}}}$', rotation=0)
-  plt.title("Standard error as a function of the blocksize.")
-  plt.gca().yaxis.set_label_coords(-0.1, 0.5)
-
-  plt.grid(True, which='both', linestyle='--', linewidth=0.25)
-  
   if savefig==0:
     return block_range, err, d_err
-  elif savefig==1:
+  
+  elif savefig==1:   
+    plt.figure(figsize=(18,12))
+    plt.errorbar(block_range, err, yerr=d_err,
+                  fmt='o-', capsize=3, 
+                  markersize=2, linewidth=0.375,
+                  color=plot.color_dict[1])
+      
+    plt.xlabel(r'$K$')
+    plt.ylabel(r'$\overline{\sigma}_{\overline{F^{(K)}}}$', rotation=0)
+    plt.title("Standard error as a function of the blocksize.")
+    plt.gca().yaxis.set_label_coords(-0.1, 0.5)
+
+    plt.grid(True, which='both', linestyle='--', linewidth=0.25)
+  
     plt.savefig(f'{path}/blocksize_analysis_{extra}.png',  dpi=300, bbox_inches='tight')
     plt.close()
-  elif savefig==2:
-    plt.show()
+
   
 #***************************
 # unit testing
