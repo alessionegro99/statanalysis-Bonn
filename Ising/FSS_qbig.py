@@ -25,6 +25,7 @@ def readfile(path, filename):
     return np.column_stack(columns)
 
 def get_therm(path, i, beta):
+    os.makedirs(f'{path}/analysis/therm/', exist_ok=True)
     data = readfile(path, filename = f"data_{i}")
     
     mag = data[:,1]
@@ -33,7 +34,7 @@ def get_therm(path, i, beta):
     x = np.arange(0,n_meas, n_meas//500)
     y = np.abs(mag[0:n_meas:n_meas//500])
     
-    np.save(f"{path}/analysis/therm/mag_b{beta:.6f}", np.array([x, y], dtype=object))
+    np.save(f"{path}/analysis/therm/therm_mag_b{beta:.6f}", np.array([x, y], dtype=object))
   
 def get_bsa(path, i, beta):
     os.makedirs(f'{path}/analysis/bsa/', exist_ok=True)
@@ -44,24 +45,27 @@ def get_bsa(path, i, beta):
 
     x, y, d_y = boot.blocksize_analysis_primary(mag, 200, [10, len(mag)//100, 20])
     
-    np.save(f"{path}/analysis/therm/mag_bsa{beta:.6f}", np.array([x, y, d_y], dtype=object))
+    np.save(f"{path}/analysis/therm/bsa_mag_b{beta:.6f}", np.array([x, y, d_y], dtype=object))
         
-def get_mag(path, i, blocksize):
+def get_mag(path, i, beta, blocksize):
+    os.makedirs(f'{path}/analysis/mag/', exist_ok=True)
     data = readfile(path, filename = f"data_{i}")
     mag = np.abs(data[:, 1])
     
     def abs(x):
         return np.abs(x)
     
-    ris, err, boot_ris = boot.bootstrap_for_primary(abs, mag, blocksize, 200, 8220, True)
-    
-    return ris, err, boot_ris
+    ris, err, boot_ris = boot.bootstrap_for_primary(abs, mag, blocksize, 500, 8220, True)
+
+    np.save(f"{path}/analysis/mag/mag_b{beta:.6f}", np.array([beta, ris, err, boot_ris], dtype=object))
     
 if __name__ == "__main__":
-    L_lst = [20, 40, 60, 80, 100, 120, 140, 160]
+    L_lst = [20]
     bs_lst = [2000] * len(L_lst)
     
     for L, bs in zip(L_lst, bs_lst):
+        os.makedirs(f'{path}/analysis/', exist_ok=True)
+
         ## simulation folder
         path = f'/hiskp4/negro/Ising/FSS/L{L}'
         
@@ -78,15 +82,10 @@ if __name__ == "__main__":
             for i, beta in enumerate(beta_lst):
                 get_bsa(path, i, beta)
         
-        ris_lst, err_lst, boot_lst = [], [], []
+        ## magnetization
         if not os.path.isfile(f"{path}/analysis/mag.npy"):
             for i, beta in enumerate(beta_lst):                
-                ris, err, boot_ris = get_mag(path, i, bs)
-                ris_lst.append(ris)
-                err_lst.append(err)
-                boot_lst.append(boot_ris)
-            
-            np.save(f"{path}/analysis/mag", np.array([beta_lst, ris_lst, err_lst, boot_lst], dtype=object))
+                get_mag(path, i, bs)
     
     
     
