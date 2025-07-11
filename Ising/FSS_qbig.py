@@ -60,7 +60,7 @@ def get_mag(path, i, beta, blocksize):
     np.save(f"{path}/analysis/mag/mag_b{beta:.6f}", np.array([beta, ris, err, boot_ris], dtype=object))
     
 if __name__ == "__main__":
-    L_lst = [20]
+    L_lst = [40, 60, 80, 100, 140, 160]
     bs_lst = [2000] * len(L_lst)
     
     for L, bs in zip(L_lst, bs_lst):
