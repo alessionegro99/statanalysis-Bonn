@@ -180,10 +180,12 @@ def blocksize_analysis_primary(vec_in, samples, block_vec, savefig=0, path=None,
   plt.grid(True, which='both', linestyle='--', linewidth=0.25)
   
   if savefig==0:
-    plt.show()
+    return block_range, err, d_err
   elif savefig==1:
     plt.savefig(f'{path}/blocksize_analysis_{extra}.png',  dpi=300, bbox_inches='tight')
     plt.close()
+  elif savefig==2:
+    plt.show()
   
 #***************************
 # unit testing
