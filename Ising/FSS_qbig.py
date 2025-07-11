@@ -64,10 +64,10 @@ if __name__ == "__main__":
     bs_lst = [2000] * len(L_lst)
     
     for L, bs in zip(L_lst, bs_lst):
-        os.makedirs(f'{path}/analysis/', exist_ok=True)
-
         ## simulation folder
         path = f'/hiskp4/negro/Ising/FSS/L{L}'
+        os.makedirs(f'{path}/analysis/', exist_ok=True)
+
         
         ## list of beta values computed
         beta_lst = [0.042 + j*0.00085 for j in range(48)]
