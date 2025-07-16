@@ -71,6 +71,18 @@ def get_avgabsmag(path, i, beta, blocksize):
 
     np.save(f"{path}/analysis/avgabsmag/avgabsmag_b{beta:.6f}", np.array([beta, ris, err, boot_ris], dtype=object))
     
+def get_energy(path, i, beta, blocksize):
+    os.makedirs(f'{path}/analysis/energy', exist_ok=True)
+    data = readfile(path, filename = f'data_{i}')
+    energy = data[:,2]
+    
+    def id(x):
+        return x
+    
+    ris, err, boot_ris = boot.bootstrap_for_primary(id, energy, blocksize, 500, 8220, True)
+    
+    np.save(f"{path}/analysis/energy/energy_b{beta:.6f}", np.array([beta, ris, err, boot_ris], dtype=object))
+    
 if __name__ == "__main__":
     args = sys.argv[1:]
 
@@ -105,6 +117,11 @@ if __name__ == "__main__":
         if not os.path.isdir(f"{path}/analysis/avgabsmag/"):
             for i, beta in enumerate(beta_lst):                
                 get_avgabsmag(path, i, beta, bs)
+                
+        ## average energy
+        if not os.path.isdir(f"{path}/analysis/energy/"):
+            for i, beta in enumerate(beta_lst):                
+                get_energy(path, i, beta, bs)
     
     
     
