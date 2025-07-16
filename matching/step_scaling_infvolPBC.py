@@ -18,7 +18,6 @@ import bootstrap as boot
 import regression as reg
 
 ## generic
-
 def format(y, d_y, digits=2):
     d_digits = int(math.floor(math.log10(abs(d_y))))
     d_y_rounded = round(d_y, -d_digits + (digits - 1))
@@ -69,7 +68,6 @@ def boot_fit(x, y, d_y, b_y, model, lim_inf, lim_sup):
     return x_linsp, y_linsp, d_y_linsp, opt, d_opt, b_opt, c2r, d_c2r              
 
 ## specific
-
 def readfile(path):
     output = np.loadtxt(f'{path}/analysis/Wloop.dat', skiprows=1)
     columns = [output[:, i] for i in range(output.shape[1])]
@@ -284,7 +282,6 @@ def extrap_potential(path, wt_max_plot, ws_max_plot, wt_min_fit, wt_max_fit):
     np.save(f"{path}/analysis/opt", save)       
   
 ## main
-
 def planarpot(path, wt_min_fit, wt_max_fit):
     wt_max = 21
     ws_max = 10
@@ -545,7 +542,6 @@ def colim(tuned_betas, beta_0, beta_lst_1, beta_lst_2, beta_lst_3, flag = 0):
     plt.savefig(f"/home/negro/projects/matching/step_scaling/infvol_PBC/r2F_r{flag+1}.png", dpi=300, bbox_inches='tight')
     
     return y_0, b_y_0, res, b_res
-       
        
 def pathstuff():
     path_glob = f"/home/negro/projects/matching/step_scaling/infvol_PBC/Nt42_Ns42_b3."
