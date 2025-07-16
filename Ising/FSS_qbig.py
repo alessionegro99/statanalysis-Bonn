@@ -45,22 +45,37 @@ def get_bsa(path, i, beta):
 
     x, y, d_y = boot.blocksize_analysis_primary(mag, 200, [10, len(mag)//100, 20])
     
-    np.save(f"{path}/analysis/therm/bsa_mag_b{beta:.6f}", np.array([x, y, d_y], dtype=object))
-        
-def get_mag(path, i, beta, blocksize):
-    os.makedirs(f'{path}/analysis/mag/', exist_ok=True)
+    np.save(f"{path}/analysis/bsa/bsa_mag_b{beta:.6f}", np.array([x, y, d_y], dtype=object))
+    
+def get_avgmag(path, i, beta, blocksize):
+    os.makedirs(f'{path}/analysis/avgmag/', exist_ok=True)
     data = readfile(path, filename = f"data_{i}")
-    mag = np.abs(data[:, 1])
+    mag = data[:, 1]
+    
+    def id(x):
+        return x
+    
+    ris, err, boot_ris = boot.bootstrap_for_primary(id, mag, blocksize, 500, 8220, True)
+
+    np.save(f"{path}/analysis/avgmag/avgmag_b{beta:.6f}", np.array([beta, ris, err, boot_ris], dtype=object))
+    
+def get_avgabsmag(path, i, beta, blocksize):
+    os.makedirs(f'{path}/analysis/avgabsmag/', exist_ok=True)
+    data = readfile(path, filename = f"data_{i}")
+    absmag = np.abs(data[:, 1])
     
     def abs(x):
         return np.abs(x)
     
-    ris, err, boot_ris = boot.bootstrap_for_primary(abs, mag, blocksize, 500, 8220, True)
+    ris, err, boot_ris = boot.bootstrap_for_primary(abs, absmag, blocksize, 500, 8220, True)
 
-    np.save(f"{path}/analysis/mag/mag_b{beta:.6f}", np.array([beta, ris, err, boot_ris], dtype=object))
+    np.save(f"{path}/analysis/avgabsmag/avgabsmag_b{beta:.6f}", np.array([beta, ris, err, boot_ris], dtype=object))
     
 if __name__ == "__main__":
-    L_lst = [120]
+    args = sys.argv[1:]
+
+    L_lst = [int(val) for val in args]
+
     bs_lst = [2000] * len(L_lst)
     
     for L, bs in zip(L_lst, bs_lst):
@@ -68,9 +83,8 @@ if __name__ == "__main__":
         path = f'/hiskp4/negro/Ising/FSS/L{L}'
         os.makedirs(f'{path}/analysis/', exist_ok=True)
 
-        
         ## list of beta values computed
-        beta_lst = [0.042 + j*0.00085 for j in range(48)]
+        beta_lst = [0.42 + j*0.00085 for j in range(48)]
         
         ## thermalization
         if not os.path.isdir(f"{path}/analysis/therm/"):
@@ -81,11 +95,16 @@ if __name__ == "__main__":
         if not os.path.isdir(f"{path}/analysis/bsa/"):
             for i, beta in enumerate(beta_lst):
                 get_bsa(path, i, beta)
-        
-        ## magnetization
-        if not os.path.isdir(f"{path}/analysis/mag/"):
+                
+        ## average magnetization
+        if not os.path.isdir(f"{path}/analysis/avgmag/"):
             for i, beta in enumerate(beta_lst):                
-                get_mag(path, i, beta, bs)
+                get_avgmag(path, i, beta, bs)
+        
+        ## average absolute magnetization
+        if not os.path.isdir(f"{path}/analysis/avgabsmag/"):
+            for i, beta in enumerate(beta_lst):                
+                get_avgabsmag(path, i, beta, bs)
     
     
     

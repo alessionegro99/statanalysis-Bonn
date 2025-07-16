@@ -179,7 +179,6 @@ def blocksize_analysis_primary(vec_in, samples, block_vec, savefig=0, path=None,
     plt.xlabel(r'$K$')
     plt.ylabel(r'$\overline{\sigma}_{\overline{F^{(K)}}}$', rotation=0)
     plt.title("Standard error as a function of the blocksize.")
-    plt.gca().yaxis.set_label_coords(-0.1, 0.5)
 
     plt.grid(True, which='both', linestyle='--', linewidth=0.25)
   
