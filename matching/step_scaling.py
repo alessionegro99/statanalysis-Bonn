@@ -438,7 +438,28 @@ def boot_fit(x, y, d_y, b_y, model, lim_inf):
     d_y_linsp = np.std(b_y_linsp, axis=0, ddof=1)
     
     return x_linsp, y_linsp, d_y_linsp, opt, d_opt, c2r, d_c2r       
+ 
+def get_r2F_old(path):
+    tmp = np.loadtxt(f'{path}/analysis/r2F.txt')
     
+    x = tmp[:,0]
+    y = tmp[:,1]
+    d_y = tmp[:,2]
+    
+    return x, y, d_y
+ 
+def plot_r2F_old(path, Nss, betas):
+     
+    plt.figure(figsize=(18,12))
+    for i, Ns in enumerate(Nss):
+        for beta in betas[i]:
+            local_path = f'{path}/L{Ns}/T48_L{Ns}_b{beta}'
+            x, y, d_y = get_r2F_old(local_path)
+            
+            plt.errorbar(beta, y[0], d_y[0], **plot.data(i))
+    plt.savefig(f'{path}/tuning_b3/invtuning_b3_r1.png', dpi=300, bbox_inches='tight')
+    plt.close()
+
 ## main
 
 def planarpot(path):
@@ -561,8 +582,8 @@ def plotfit_potential(path, fit = 'false'):
     plt.savefig(f"{path}/analysis/potential.png", dpi=300, bbox_inches='tight')    
 
 if __name__ == "__main__":
-    Ns = 7
-    beta = 12
+    Ns = 3
+    beta = 3
     
     path_glob = f"/home/negro/projects/matching/step_scaling/CLSS/Nt48_Ns{Ns}/b{beta}"
     
@@ -576,10 +597,15 @@ if __name__ == "__main__":
     # ## staircase
     wsplot = np.array([np.sqrt(i**2 + j**2) for i in range(1,Ns) for j in range(1,i+1)])
 
-    staircase(path_glob, wsplot=wsplot)
+    #staircase(path_glob, wsplot=wsplot)
 
-    plotfit_potential(path_glob)
+    #plotfit_potential(path_glob)
     
     # compute_r2F(path_glob, Ns=Ns)
     
-    fit_staircase(path_glob, lim_inf=5)
+    #fit_staircase(path_glob, lim_inf=5)
+    
+    path_root = f'/home/negro/projects/matching/step_scaling'
+    Nss = [3, 4, 5, 7]
+    betas = [[3], [4, 4.05, 4.1, 4.15, 4.2, 4.25], [11, 11.5, 12, 12.5], [10, 11, 12]]
+    plot_r2F_old(path_root, Nss, betas)

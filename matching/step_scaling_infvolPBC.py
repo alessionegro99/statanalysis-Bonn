@@ -544,7 +544,7 @@ def colim(tuned_betas, beta_0, beta_lst_1, beta_lst_2, beta_lst_3, flag = 0):
     return y_0, b_y_0, res, b_res
        
 def pathstuff():
-    path_glob = f"/home/negro/projects/matching/step_scaling/infvol_PBC/Nt42_Ns42_b3."
+    path_glob = f"/home/negro/projects/matching/step_scaling/infvol_PBC/Nt42_Ns42_b3.025"
     
     if not os.path.isdir(f"{path_glob}/analysis/"):
         os.makedirs(f"{path_glob}/analysis/") 
@@ -575,9 +575,9 @@ def nonpathstuff():
     beta_0 = 2  
     beta_lst_1 = [2.25, 2.26, 2.27, 2.28, 2.29, 2.3]
     beta_lst_2 = [2.75, 2.8, 2.85, 2.9]
-    beta_lst_3 = [2.9, 2.95, 3.05]
+    beta_lst_3 = [2.9, 2.925, 2.95, 2.975, 3, 3.025, 3.05]
     
-    tuned_betas = tune_r2F(beta_0, beta_lst_1, beta_lst_2, beta_lst_3, flag=0, spreadout = 6)
+    tuned_betas = tune_r2F(beta_0, beta_lst_1, beta_lst_2, beta_lst_3, flag=0, spreadout = 1)
     y_0, b_y_0, res, b_res = colim(tuned_betas, beta_0, beta_lst_1, beta_lst_2, beta_lst_3, flag = 1)
     
     def model(x,a , b,c ):
@@ -590,21 +590,31 @@ def nonpathstuff():
     d_y_fit = [0] * len(x_fit)
     b_y_fit = []
 
-    y_fit[0] = y_0
+    y_fit[0] = float(y_0)
+    
     for j, res_j in enumerate(res):
-        y_fit[j+1] = res_j
+        y_fit[j+1] = float(res_j)
         
-    d_y_fit[0] = np.std(b_y_0, ddof=1)
+    d_y_fit[0] = float(np.std(b_y_0, ddof=1))
     for j, b_res_j in enumerate(b_res):
-        d_y_fit[j+1] = np.std(b_res_j, ddof=1)
-
-    b_y_fit.append(np.array(b_y_0, dtype=float))
-    for j, b_res_j in enumerate(b_res):
-        b_y_fit.append(np.array(b_res_j, dtype=float))
+        d_y_fit[j+1] = float(np.std(b_res_j, ddof=1))
+        
 
     plt.figure(figsize=(18,12))
     
     plt.errorbar(x_fit, y_fit, d_y_fit, **plot.data(0))
+    
+    print(x_fit, y_fit, d_y_fit)
+    
+    def a2pa4(x, a, b, c):
+        return a + b*x + c*x**2
+    
+    opt, cov = curve_fit(a2pa4, x_fit, y_fit, sigma=d_y_fit, absolute_sigma=True)
+    
+    x_lsp = np.linspace(x_fit[0], x_fit[-1], 100)
+    y_lsp = a2pa4(x_lsp, *opt)
+    
+    plt.plot(x_lsp, y_lsp, **plot.fit(0))
         
     plt.grid (True, linestyle = '--', linewidth = 0.25)
     
@@ -616,7 +626,7 @@ def nonpathstuff():
 
 if __name__ == "__main__":
 
-    pathstuff()
+    #pathstuff()
     
     nonpathstuff()
 
