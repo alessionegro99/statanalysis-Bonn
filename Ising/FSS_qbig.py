@@ -106,6 +106,19 @@ def get_avgmag4(path, i, beta, blocksize):
     ris, err, boot_ris = boot.bootstrap_for_primary(fourth, absmag, blocksize, 500, 8220, True)
 
     np.save(f"{path}/analysis/avgmag4/avgmag4_b{beta:.6f}", np.array([beta, ris, err, boot_ris], dtype=object))
+ 
+def get_energy2(path, i, beta, blocksize):
+    os.makedirs(f'{path}/analysis/energy', exist_ok=True)
+    data = readfile(path, filename = f'data_{i}')
+    energy = data[:,2]
+    
+    def sq(x):
+        return x**2
+    
+    ris, err, boot_ris = boot.bootstrap_for_primary(sq, energy, blocksize, 500, 8220, True)
+    
+    np.save(f"{path}/analysis/energy2/energy2_b{beta:.6f}", np.array([beta, ris, err, boot_ris], dtype=object))
+     
     
 if __name__ == "__main__":
     args = sys.argv[1:]
@@ -156,4 +169,9 @@ if __name__ == "__main__":
         if not os.path.isdir(f"{path}/analysis/avgmag4/"):
             for i, beta in enumerate(beta_lst):                
                 get_avgmag4(path, i, beta, bs)
+                
+        ## average square energy
+        if not os.path.isdir(f"{path}/analysis/energy/"):
+            for i, beta in enumerate(beta_lst):                
+                get_energy2(path, i, beta, bs)
     
