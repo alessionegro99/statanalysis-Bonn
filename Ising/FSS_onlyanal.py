@@ -120,9 +120,12 @@ def get_chi(path, Ns, beta):
     chi, d_chi = Ns**2*m2, Ns**2*d_m2
     chip = Ns**2*(m2-m**2)
     
+    b_m=np.sum(b_m, axis=1)/len(b_m)
+    b_m2=np.sum(b_m2, axis=1)/len(b_m2)
+    
     b_chip = []
     for b_m_j, b_m2_j in zip(b_m, b_m2):
-        b_chip.append((b_m2_j-b_m_j**2))
+        b_chip.append(Ns**2*(b_m2_j-b_m_j**2))
     
     d_chip = np.std(b_chip, ddof=1)
     
@@ -155,6 +158,7 @@ def get_binder(path, Ns, beta):
 
     binder = m4/m2**2
 
+    ## remove
     b_m2=np.sum(b_m2, axis=1)/len(b_m2)
     b_m4=np.sum(b_m4, axis=1)/len(b_m4)
 
@@ -189,4 +193,4 @@ if __name__ == "__main__":
     
     #plot_chi(path, Ns_lst, beta_lst)
     plot_chip(path, Ns_lst, beta_lst)
-    plot_binder(path, Ns_lst, beta_lst)
+    #plot_binder(path, Ns_lst, beta_lst)
