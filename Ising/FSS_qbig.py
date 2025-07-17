@@ -83,6 +83,31 @@ def get_energy(path, i, beta, blocksize):
     
     np.save(f"{path}/analysis/energy/energy_b{beta:.6f}", np.array([beta, ris, err, boot_ris], dtype=object))
     
+def get_avgmag2(path, i, beta, blocksize):
+    os.makedirs(f'{path}/analysis/avgmag2/', exist_ok=True)
+    data = readfile(path, filename = f"data_{i}")
+    absmag = np.abs(data[:, 1])
+    
+    def square(x):
+        return x**2
+    
+    ris, err, boot_ris = boot.bootstrap_for_primary(square, absmag, blocksize, 500, 8220, True)
+
+    np.save(f"{path}/analysis/avgmag2/avgmag2_b{beta:.6f}", np.array([beta, ris, err, boot_ris], dtype=object))
+    
+def get_avgmag4(path, i, beta, blocksize):
+    os.makedirs(f'{path}/analysis/avgmag4/', exist_ok=True)
+    data = readfile(path, filename = f"data_{i}")
+    absmag = np.abs(data[:, 1])
+    
+    def fourth(x):
+        return x**4
+    
+    ris, err, boot_ris = boot.bootstrap_for_primary(fourth, absmag, blocksize, 500, 8220, True)
+
+    np.save(f"{path}/analysis/avgmag4/avgmag4_b{beta:.6f}", np.array([beta, ris, err, boot_ris], dtype=object))
+    
+
 if __name__ == "__main__":
     args = sys.argv[1:]
 
@@ -123,5 +148,13 @@ if __name__ == "__main__":
             for i, beta in enumerate(beta_lst):                
                 get_energy(path, i, beta, bs)
     
-    
+        ## average square magnetization
+        if not os.path.isdir(f"{path}/analysis/avgmag2/"):
+            for i, beta in enumerate(beta_lst):                
+                get_avgmag2(path, i, beta, bs)
+                
+        ## average fourth power magnetization
+        if not os.path.isdir(f"{path}/analysis/avgmag4/"):
+            for i, beta in enumerate(beta_lst):                
+                get_avgmag4(path, i, beta, bs)
     
