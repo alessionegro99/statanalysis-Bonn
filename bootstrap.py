@@ -56,7 +56,7 @@ def bootstrap_for_primary(func, vec_in, block, samples, seed=None, returnboot=Fa
   err=np.std(risboot, ddof=1)
   
   if returnboot==True:
-    return ris, err, bootsample
+    return ris, err, risboot
   
   else:
     return ris, err
@@ -238,21 +238,21 @@ if __name__=="__main__":
   print("    err = %f" % err)
   print()
   
-  # Parameters
-  n = 10000           # Length of the vector
-  rho = 0.1         # Autocorrelation coefficient (close to 1 for heavy autocorrelation)
-  sigma = 1          # Standard deviation of the white noise
+  # # Parameters
+  # n = 10000           # Length of the vector
+  # rho = 0.1         # Autocorrelation coefficient (close to 1 for heavy autocorrelation)
+  # sigma = 1          # Standard deviation of the white noise
 
-  # Generate white noise
-  np.random.seed(0)
-  noise = np.random.normal(0, sigma, n)
+  # # Generate white noise
+  # np.random.seed(0)
+  # noise = np.random.normal(0, sigma, n)
 
-  # Initialize the vector
-  x = np.zeros(n)
-  for t in range(1, n):
-      x[t] = rho * x[t-1] + noise[t]
+  # # Initialize the vector
+  # x = np.zeros(n)
+  # for t in range(1, n):
+  #     x[t] = rho * x[t-1] + noise[t]
     
-  blocksize_analysis_primary(x, 200, [1, 500, 10])
+  # blocksize_analysis_primary(x, 200, [1, 500, 10])
 
   print("**********************")
 

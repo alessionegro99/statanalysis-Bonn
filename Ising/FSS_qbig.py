@@ -107,7 +107,6 @@ def get_avgmag4(path, i, beta, blocksize):
 
     np.save(f"{path}/analysis/avgmag4/avgmag4_b{beta:.6f}", np.array([beta, ris, err, boot_ris], dtype=object))
     
-
 if __name__ == "__main__":
     args = sys.argv[1:]
 
