@@ -149,6 +149,8 @@ def plot_chip(path, Ns_lst, beta_lst):
         for beta in beta_lst:
             x, _, _, chip, d_chip = get_chi(path, Ns, beta)
             plt.errorbar(x, chip/100, d_chip/100, **plot.data(i))
+    plt.xlabel(r'$\beta$')
+    plt.ylabel(r'$(\langle m^2\rangle - \langle |m|\rangle^2)/10^2$')
     plt.savefig(f"{path}/chip.png", bbox_inches='tight', dpi=300)
     plt.close()    
     
@@ -177,6 +179,8 @@ def plot_binder(path, Ns_lst, beta_lst):
         for beta in beta_lst:
             x, y, d_y = get_binder(path, Ns, beta)
             plt.errorbar(x, y, d_y, **plot.data(i))
+    plt.xlabel(r'$\beta$')
+    plt.ylabel(r'$U$')
     plt.savefig(f"{path}/binder.png", bbox_inches='tight', dpi=300)
     plt.close()     
     
@@ -193,4 +197,4 @@ if __name__ == "__main__":
     
     #plot_chi(path, Ns_lst, beta_lst)
     plot_chip(path, Ns_lst, beta_lst)
-    #plot_binder(path, Ns_lst, beta_lst)
+    plot_binder(path, Ns_lst, beta_lst)

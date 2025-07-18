@@ -389,13 +389,13 @@ def fit_staircase(path, lim_inf):
     
     plt.errorbar(x, y, d_y, **plot.data(0))#
     
-    plt.plot(x_linsp_log, y_linsp_log, **plot.fit(1), label=fr"a+$\sigma$*x+c*ln(x), $\sigma$={opt_log[1]:.4g}({d_opt_log[1]:.2g}), $\chi2/\nu$={c2r_log:.2g}({d_c2r_log:.2g})")
-    plt.fill_between(x_linsp_log, y_linsp_log-d_y_linsp_log,y_linsp_log+d_y_linsp_log, **plot.conf_band(1))
+    # plt.plot(x_linsp_log, y_linsp_log, **plot.fit(1), label=fr"a+$\sigma$*x+c*ln(x), $\sigma$={opt_log[1]:.4g}({d_opt_log[1]:.2g}), $\chi2/\nu$={c2r_log:.2g}({d_c2r_log:.2g})")
+    # plt.fill_between(x_linsp_log, y_linsp_log-d_y_linsp_log,y_linsp_log+d_y_linsp_log, **plot.conf_band(1))
     
-    plt.plot(x_linsp_lusc, y_linsp_lusc, **plot.fit(2), label=fr"a+$\sigma$*x+c/x, $\sigma$={opt_lusc[1]:.4g}({d_opt_lusc[1]:.2g}), $\chi2/\nu$={c2r_lusc:.2g}({d_c2r_lusc:.2g})")
-    plt.fill_between(x_linsp_lusc, y_linsp_lusc-d_y_linsp_lusc,y_linsp_lusc+d_y_linsp_lusc, **plot.conf_band(2))
+    # plt.plot(x_linsp_lusc, y_linsp_lusc, **plot.fit(2), label=fr"a+$\sigma$*x+c/x, $\sigma$={opt_lusc[1]:.4g}({d_opt_lusc[1]:.2g}), $\chi2/\nu$={c2r_lusc:.2g}({d_c2r_lusc:.2g})")
+    # plt.fill_between(x_linsp_lusc, y_linsp_lusc-d_y_linsp_lusc,y_linsp_lusc+d_y_linsp_lusc, **plot.conf_band(2))
     
-    plt.plot(x_linsp_lusc, y_linsp_lusc, **plot.fit(3), label=fr"a+$\sigma$*x, $\sigma$={opt_lin[1]:.4g}({d_opt_lin[1]:.2g}), $\chi2/\nu$={c2r_lin:.2g}({d_c2r_lin:.2g})")
+    plt.plot(x_linsp_lin, y_linsp_lin, **plot.fit(3), label=fr"a+$\sigma$*x, $\sigma$={opt_lin[1]:.4g}({d_opt_lin[1]:.2g}), $\chi2/\nu$={c2r_lin:.2g}({d_c2r_lin:.2g})")
     plt.fill_between(x_linsp_lin, y_linsp_lin-d_y_linsp_lin,y_linsp_lin+d_y_linsp_lin, **plot.conf_band(3))
     
     plt.legend()    
@@ -582,8 +582,8 @@ def plotfit_potential(path, fit = 'false'):
     plt.savefig(f"{path}/analysis/potential.png", dpi=300, bbox_inches='tight')    
 
 if __name__ == "__main__":
-    Ns = 3
-    beta = 3
+    Ns = 7
+    beta = 12
     
     path_glob = f"/home/negro/projects/matching/step_scaling/CLSS/Nt48_Ns{Ns}/b{beta}"
     
@@ -603,7 +603,7 @@ if __name__ == "__main__":
     
     # compute_r2F(path_glob, Ns=Ns)
     
-    #fit_staircase(path_glob, lim_inf=5)
+    fit_staircase(path_glob, lim_inf=5)
     
     path_root = f'/home/negro/projects/matching/step_scaling'
     Nss = [3, 4, 5, 7]

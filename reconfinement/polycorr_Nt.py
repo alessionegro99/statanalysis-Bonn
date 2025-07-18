@@ -302,8 +302,8 @@ def boot_fit_polycorr(path):
     np.savetxt(f"{path}/analysis/boot_fit_res.txt", data)
 
 def format_results():
-    beta = 27.4745
-    h = 0.004
+    beta = 23.3805
+    h = 0.005
     
     path = f"/home/negro/projects/reconfinement/polycorr_Nt/b{beta}_h{h}"
     # Rmin Rmax A d_A boot_A d_boot_A E0 d_E0 boot_E0 d_boot_E0 chi2 boot_chi2 d_boot_chi2 lambda0 d_lambda0

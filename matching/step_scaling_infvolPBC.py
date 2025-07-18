@@ -231,10 +231,17 @@ def find_wtmin(path, ws_max_plot, wt_start=1, wt_end=10):
             pot, d_pot = opt[0], np.std(boot_pot, ddof=1)
             dp.append(pot)
             d_dp.append(d_pot)
+            
+        if i == 0:
+            ylim_inf = dp[-1] * (1-0.2)
+        if i==ws_max_plot-1:
+            ylim_sup = dp[0] * (1 + 0.2)
+         
         
-        plt.errorbar(range(wt_start, wt_end-3), dp, d_dp, **plot.data(i), label=i)
+        plt.errorbar(range(wt_start, wt_end-3), dp, d_dp, **plot.data(i), label=f'$w_s$={i+1}')
     
-    plt.legend
+    plt.ylim(ylim_inf, ylim_sup)
+    plt.legend()
     plt.grid (True, linestyle = '--', linewidth = 0.25)
     plt.savefig(f"{path}/analysis/find_wtmin.png", dpi=300, bbox_inches='tight')    
 
@@ -248,18 +255,22 @@ def extrap_potential(path, wt_max_plot, ws_max_plot, wt_min_fit, wt_max_fit):
         
     plt.figure(figsize=(18,12))
     
-    plt.xlabel(r'$w_t$')
+    plt.xlabel(r'$1/w_t$')
     plt.ylabel(r'$aV(w_t)$')
     
     pot, b_pot = [], []
             
     print("ws pot_n d_pot_n c2r_n d_c2r_b")
     for i in range(ws_max_plot):
-        
         Mp = wt_max_plot[i]
         mf, Mf = wt_min_fit[i], wt_max_fit[i]
         x, y, d_y, b_y = 1/np.arange(1,Mp+1), np.array(res[i][0:Mp]), np.array(d_res[i][0:Mp]), np.array(boot_res[i][0:Mp])
 
+        if i == 0:
+            ylim_inf = y[0]
+        if i==ws_max_plot-1:
+            ylim_sup = y[0]
+        
         x_linsp, y_linsp, d_y_linsp, opt, d_opt, b_opt, c2r, d_c2r = boot_fit(x, y, d_y, b_y, model, mf, Mf)
         
         pot.append(opt[0])
@@ -273,6 +284,7 @@ def extrap_potential(path, wt_max_plot, ws_max_plot, wt_min_fit, wt_max_fit):
         print(f"{wsplot[i]:.2g} {opt[0]:.6g} {d_opt[0]:.2g} {c2r:.4g} {d_c2r:.4g}")
         
     plt.xlim(x_linsp[-1] *(1-0.01), x_linsp[0]*(1+0.01))
+    plt.ylim((ylim_inf,ylim_sup))
     plt.grid (True, linestyle = '--', linewidth = 0.25)
     plt.legend()
     plt.savefig(f"{path}/analysis/extrap_pot.png", dpi=300, bbox_inches='tight')    
@@ -301,7 +313,7 @@ def planarpot(path, wt_min_fit, wt_max_fit):
     plot_potential(path, wt_max_plot, ws_max_plot)
     
     if not os.path.isfile(f"{path}/analysis/find_wtmin.png"):
-        find_wtmin(path, ws_max_plot, wt_start=2, wt_end=21)
+        find_wtmin(path, ws_max_plot, wt_start=2, wt_end=16)
     
     extrap_potential(path, wt_max_plot, ws_max_plot, wt_min_fit, wt_max_fit)
     
@@ -544,7 +556,7 @@ def colim(tuned_betas, beta_0, beta_lst_1, beta_lst_2, beta_lst_3, flag = 0):
     return y_0, b_y_0, res, b_res
        
 def pathstuff():
-    path_glob = f"/home/negro/projects/matching/step_scaling/infvol_PBC/Nt42_Ns42_b3.025"
+    path_glob = f"/home/negro/projects/matching/step_scaling/infvol_PBC/Nt42_Ns42_b2"
     
     if not os.path.isdir(f"{path_glob}/analysis/"):
         os.makedirs(f"{path_glob}/analysis/") 
@@ -554,8 +566,8 @@ def pathstuff():
     
     ## planar
     ws_max_plot = 10
-    wt_min_fit = [16] * ws_max_plot
-    wt_max_fit = [20] * ws_max_plot
+    wt_min_fit = [12] * ws_max_plot
+    wt_max_fit = [18] * ws_max_plot
     
     planarpot(path_glob, wt_min_fit, wt_max_fit)
     
@@ -566,9 +578,9 @@ def pathstuff():
     
     rL = [rL4, rL5, rL7]
         
-    for rLi in rL:
-        plotfit_potential(path_glob, fit='true', ri=rLi, start=0, end=10)
-        compute_r2F(path_glob, ri=rLi)
+    #for rLi in rL:
+        #plotfit_potential(path_glob, fit='true', ri=rLi, start=0, end=10)
+        #compute_r2F(path_glob, ri=rLi)
     
 def nonpathstuff():
     ## list of betas available
@@ -618,7 +630,7 @@ def nonpathstuff():
         
     plt.grid (True, linestyle = '--', linewidth = 0.25)
     
-        
+    plt.xlim(0, 0.25)
     plt.ylabel(r'$r_2^2F(r_2,g)$')
     plt.xlabel(r'$1/r^2_{latt}$')
     
@@ -626,8 +638,8 @@ def nonpathstuff():
 
 if __name__ == "__main__":
 
-    #pathstuff()
+    pathstuff()
     
-    nonpathstuff()
+    #nonpathstuff()
 
     
