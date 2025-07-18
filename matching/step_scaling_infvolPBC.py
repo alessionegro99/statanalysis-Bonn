@@ -32,15 +32,18 @@ def format(y, d_y, digits=2):
     formatted = f"{value_rounded:.{decimal_places}f}({int(d_y_rounded * 10**decimal_places):0{digits}d})"
     print(formatted)
 
-def boot_fit(x, y, d_y, b_y, model, lim_inf, lim_sup):
+def boot_fit(x, y, d_y, b_y, model, lim_inf, lim_sup, extension=None):
     x_fit, y_fit, d_y_fit, b_y_fit = x[lim_inf:lim_sup], y[lim_inf:lim_sup], d_y[lim_inf:lim_sup], b_y[lim_inf:lim_sup]
     opt, cov = curve_fit(model, x_fit, y_fit, sigma=d_y_fit, absolute_sigma=True)
     
     n_boot = len(b_y[0])
 
     x_linsp = np.linspace(x_fit[0], x_fit[-1], 100)
+    if extension:
+        x_linsp=np.linspace(extension[0], extension[1], extension[2])
+        
     y_linsp = model(x_linsp, *opt)
-    
+        
     b_opt = []
     b_c2r = []
     b_y_linsp = []
@@ -49,17 +52,14 @@ def boot_fit(x, y, d_y, b_y, model, lim_inf, lim_sup):
         y_fit_j = [b_y_fit[i][j] for i in range(len(b_y_fit))]
         
         opt_j, cov_j = curve_fit(model, x_fit, y_fit_j, sigma=d_y_fit, absolute_sigma=True)
-        
+        b_opt.append(opt_j)
+
         b_c2r.append(reg.chi2_corr(x_fit, y_fit_j, model, np.diag(np.array(d_y_fit)**2), *opt_j))
         
-        b_opt.append(opt_j)
-        
         y_linsp_j = model(x_linsp, *opt_j)
-        
         b_y_linsp.append(y_linsp_j)
-    
-        d_opt = np.std(b_opt, axis=0, ddof=1)
-        
+
+    d_opt = np.std(b_opt, axis=0, ddof=1)
     
     c2r = reg.chi2_corr(x_fit, y_fit, model, np.diag(np.array(d_y_fit)**2), *opt)
     d_c2r = np.std(b_c2r)
@@ -173,7 +173,7 @@ def plot_potential(path, wt_max_plot, ws_max_plot):
         plt.errorbar(x_plot, effm[:wt_max_plot[i]], d_effm[:wt_max_plot[i]], **plot.data(i), label=fr"$w_s={wsplot[i]:.2f}$")
                 
     plt.grid (True, linestyle = '--', linewidth = 0.25)
-    plt.legend()
+    plt.legend(loc='upper left')
     
     plt.savefig(f"{path}/analysis/effmass.png", dpi=300, bbox_inches='tight')
     
@@ -189,13 +189,14 @@ def plot_potential(path, wt_max_plot, ws_max_plot):
         d_effm = d_res[i]
         plt.errorbar(1/x_plot, effm[:wt_max_plot[i]], d_effm[:wt_max_plot[i]], **plot.data(i), label=fr"$w_s={wsplot[i]:.2f}$")
                 
-    
+    plt.xlim(0, 0.2)
+    plt.ylim()
     plt.grid (True, linestyle = '--', linewidth = 0.25)
-    plt.legend()
+    plt.legend(loc='upper right')
     
     plt.savefig(f"{path}/analysis/pot_ws.png", dpi=300, bbox_inches='tight')
 
-def find_wtmin(path, ws_max_plot, wt_start=1, wt_end=10):
+def find_wtmin(path, ws_max_plot, wt_start=1, wt_end=12):
     def model(x, a, b):
         return a + b/x
     
@@ -241,7 +242,7 @@ def find_wtmin(path, ws_max_plot, wt_start=1, wt_end=10):
         plt.errorbar(range(wt_start, wt_end-3), dp, d_dp, **plot.data(i), label=f'$w_s$={i+1}')
     
     plt.ylim(ylim_inf, ylim_sup)
-    plt.legend()
+    plt.legend(loc='upper left')
     plt.grid (True, linestyle = '--', linewidth = 0.25)
     plt.savefig(f"{path}/analysis/find_wtmin.png", dpi=300, bbox_inches='tight')    
 
@@ -267,26 +268,26 @@ def extrap_potential(path, wt_max_plot, ws_max_plot, wt_min_fit, wt_max_fit):
         x, y, d_y, b_y = 1/np.arange(1,Mp+1), np.array(res[i][0:Mp]), np.array(d_res[i][0:Mp]), np.array(boot_res[i][0:Mp])
 
         if i == 0:
-            ylim_inf = y[0]
+            ylim_inf = y[-1]*0.5
         if i==ws_max_plot-1:
-            ylim_sup = y[0]
+            ylim_sup = y[0]*0.8
         
-        x_linsp, y_linsp, d_y_linsp, opt, d_opt, b_opt, c2r, d_c2r = boot_fit(x, y, d_y, b_y, model, mf, Mf)
+        x_linsp, y_linsp, d_y_linsp, opt, d_opt, b_opt, c2r, d_c2r = boot_fit(x, y, d_y, b_y, model, mf, Mf, [0, 0.12, 2])
         
         pot.append(opt[0])
         b_pot.append([b_opt[j][0] for j in range(len(b_opt))])
         
-        plt.errorbar(x, y, d_y, **plot.data(i), label=fr"$w_s={wsplot[i]:.2f}$, $\chi^2/dof$={c2r:.2f}")
-
+        plt.errorbar(x, y, d_y, **plot.data(i), label=fr"$w_s={wsplot[i]:.2f}$, $\chi^2/dof$={c2r:.2f}, $m$={mf}, $M$={Mf} ")
+        
         plt.plot(x_linsp, y_linsp, **plot.fit(i))
         plt.fill_between(x_linsp, y_linsp-d_y_linsp, y_linsp+d_y_linsp, **plot.conf_band(i))
 
         print(f"{wsplot[i]:.2g} {opt[0]:.6g} {d_opt[0]:.2g} {c2r:.4g} {d_c2r:.4g}")
         
-    plt.xlim(x_linsp[-1] *(1-0.01), x_linsp[0]*(1+0.01))
+    plt.xlim(-0.01, 0.12)
     plt.ylim((ylim_inf,ylim_sup))
     plt.grid (True, linestyle = '--', linewidth = 0.25)
-    plt.legend()
+    plt.legend(loc='upper right')
     plt.savefig(f"{path}/analysis/extrap_pot.png", dpi=300, bbox_inches='tight')    
 
     wsplot = wsplot[:ws_max_plot].copy()
@@ -294,10 +295,7 @@ def extrap_potential(path, wt_max_plot, ws_max_plot, wt_min_fit, wt_max_fit):
     np.save(f"{path}/analysis/opt", save)       
   
 ## main
-def planarpot(path, wt_min_fit, wt_max_fit):
-    wt_max = 21
-    ws_max = 10
-    
+def planarpot(path, ws_max, ws_max_plot, wt_max, wt_min_fit, wt_max_fit):    
     if not os.path.isdir(f"{path}/analysis/therm/"):
         thermalization(path, wt_max, ws_max)
         
@@ -313,12 +311,12 @@ def planarpot(path, wt_min_fit, wt_max_fit):
     plot_potential(path, wt_max_plot, ws_max_plot)
     
     if not os.path.isfile(f"{path}/analysis/find_wtmin.png"):
-        find_wtmin(path, ws_max_plot, wt_start=2, wt_end=16)
+        find_wtmin(path, ws_max_plot, wt_start=2, wt_end=21)
     
     extrap_potential(path, wt_max_plot, ws_max_plot, wt_min_fit, wt_max_fit)
     
-def potential(x, a, b, c, d, e):
-    return a + b*x + c*np.log(x) + d/x + e/x**2
+def potential(x, a, b, c):
+    return a + b*x + c*np.log(x)
 
 def plotfit_potential(path, fit='false', print_res='true', ri=[1, 5**0.5, np.sqrt(8)], start=0, end=10):   
     x, y, b_y = np.load(f"{path}/analysis/opt.npy", allow_pickle=True)
@@ -367,27 +365,20 @@ def compute_r2F(path, ri = [1, 5**0.5, np.sqrt(8)]):
     y_r2 = potential(r2, *opt)
     y_r3 = potential(r3, *opt)
 
-    y_r1_j, y_r2_j, y_r3_j = [], [], []
     b_r2F_r1, b_r2F_r2 = [], []
     
     for opt_j in b_opt:
-        y_r1_j.append(potential(r1, *opt_j))
-        y_r2_j.append(potential(r2, *opt_j))
-        y_r3_j.append(potential(r3, *opt_j))
-        
         b_r2F_r1.append(r1**2*(potential(r2, *opt_j)-potential(r1, *opt_j))/(r2-r1))
         b_r2F_r2.append(r2**2*(potential(r3, *opt_j)-potential(r2, *opt_j))/(r3-r2))
-
-    d_y_r1 = np.std(y_r1_j, ddof=1)
-    d_y_r2 = np.std(y_r2_j, ddof=1)
-    d_y_r3 = np.std(y_r3_j, ddof=1)
     
-    r2F_r1 = r2**2*(y_r3-y_r2)/(r3-r2)
-    d_r2F_r1 = np.std(b_r2F_r2, ddof=1)
-    r2F_r2 = r1**2*(y_r2-y_r1)/(r2-r1)
-    d_r2F_r2 = np.std(b_r2F_r1, ddof=1)
+    r2F_r1 = r1**2*(y_r2-y_r1)/(r2-r1)
+    d_r2F_r1 = np.std(b_r2F_r1, ddof=1)
+    r2F_r2 = r2**2*(y_r3-y_r2)/(r3-r2)
+    d_r2F_r2 = np.std(b_r2F_r2, ddof=1)
     
+    print('r2F_r1(d_r2F_r1)')
     format(r2F_r1, d_r2F_r1)
+    print('r2F_r2(d_r2F_r2)')
     format(r2F_r2, d_r2F_r2)
 
     r2F = [r2F_r1, r2F_r2]
@@ -396,121 +387,76 @@ def compute_r2F(path, ri = [1, 5**0.5, np.sqrt(8)]):
     np.save(f"{path}/analysis/r2F_{int(ri[0]**2)}_{int(ri[1]**2)}", np.array([r2F, b_r2F], dtype=object))
 
 ## flag 0->r1 1->r2
-def tune_r2F(beta_0, beta_lst_1, beta_lst_2, beta_lst_3, flag = 0, spreadout = 6):
-    ## different distances used
-    rL3 = [1, 5**0.5, 8**0.5]
-    rL4 = [2**0.5, 10**0.5, 18**0.5]
-    rL5 = [5**0.5, 25**0.5, 40**0.5]
-    rL7 = [8**0.5, 40**0.5, 72**0.5]
+def tune_r2F(beta_lst, rLi_lst, flag=0):
     
-    ## distances to be used at the present moment
-    ri = [rL3, rL4, rL5, rL7]
-    Nss = [3, 4, 5, 7]
+    def apbxpcx2(x,a,b,c):
+        return a + b*x +c*x**2
     
-    betas = [beta_lst_1, beta_lst_2, beta_lst_3]
-    
-    path =  f"/home/negro/projects/matching/step_scaling/infvol_PBC/Nt42_Ns42_b{beta_0}"
+    def zeros(x):
+        return (apbxpcx2(x,*opt) - y_0)
 
-    ## starting point: r2F_r1 for L3 values (r1=1, r2=sqrt(5))
-    tmp = np.load(f"{path}/analysis/r2F_{int(rL3[0]**2)}_{int(rL3[1]**2)}.npy", allow_pickle=True)
-    r2F_L3, b_r2F_L3 = tmp[0], np.array(tmp[1])
-
-    plt.figure(figsize=(18,12))
-    
-    y_0 =  r2F_L3[flag]
-    d_y_0 = np.std(b_r2F_L3[flag], ddof=1)
-    
-    plt.errorbar(beta_0, y_0, d_y_0, **plot.data(0), label=fr'$N_s\times N_s$={Nss[0]} $\times$ {Nss[0]}')
-    
     tuned_betas = []
     
-    for i, rLi in enumerate(ri[1:]):
+    plt.figure(figsize=(18,12))
+    for i, rLi in enumerate(rLi_lst):
         y_lst, d_y_lst, b_y_lst = [], [], []
-        for beta in betas[i]:
+        
+        for beta in beta_lst[i]:
             path =  f"/home/negro/projects/matching/step_scaling/infvol_PBC/Nt42_Ns42_b{beta}"
 
             tmp = np.load(f"{path}/analysis/r2F_{int(rLi[0]**2)}_{int(rLi[1]**2)}.npy", allow_pickle=True)
             r2F, b_r2F = tmp[0], tmp[1]
             
-            y_tmp = r2F[flag]
-            b_y_tmp = b_r2F[flag]
-            for j, b_y_tmp_j in enumerate(b_y_tmp):
-                b_y_tmp[j] = b_y_tmp_j * spreadout
+            y_tmp, b_y_tmp = r2F[flag], b_r2F[flag]
+                                                
             d_y_tmp = np.std(b_y_tmp, ddof=1) 
                     
-            if beta==betas[i][0]:
-                plt.errorbar(beta, y_tmp, d_y_tmp, **plot.data(i+1), label=fr'$N_s \times N_s$={Nss[i+1]} $\times$ {Nss[i+1]}')
-            else:
-                plt.errorbar(beta, y_tmp, d_y_tmp, **plot.data(i+1))     
+            label=fr'$r_1$={rLi[0]:.2f}' if beta==beta_lst[i][0] else None
+            plt.errorbar(beta, y_tmp, d_y_tmp, **plot.data(i), label=label)
                        
             y_lst.append(y_tmp)
             d_y_lst.append(d_y_tmp)
             b_y_lst.append(b_y_tmp)
-            
-        def model(x,a,b,c):
-            return a + b*x +c*x**2
         
-        x_linsp, y_linsp, d_y_linsp, opt, d_opt, b_opt, c2r, d_c2r = boot_fit(x=betas[i], y=y_lst, d_y=d_y_lst, b_y=b_y_lst, model=model, lim_inf=0, lim_sup=len(y_lst))
+            if i==0 and beta==beta_lst[i][0]:
+                beta_0 = beta
+                y_0 = y_tmp
+        if i!=0:
+            x_linsp, y_linsp, d_y_linsp, opt, d_opt, b_opt, c2r, d_c2r = boot_fit(x=beta_lst[i], y=y_lst, d_y=d_y_lst, b_y=b_y_lst, model=apbxpcx2, lim_inf=0, lim_sup=len(y_lst))
+            plt.plot(x_linsp, y_linsp, **plot.fit(i), label = fr"$\chi^2/\nu$={c2r:.2f}")
+            plt.fill_between(x_linsp, y_linsp-d_y_linsp, y_linsp+d_y_linsp, **plot.conf_band(i))
         
-        plt.plot(x_linsp, y_linsp, **plot.fit(i+1), label = fr"$\chi^2/\nu$={c2r:.2f}")
-        plt.fill_between(x_linsp, y_linsp-d_y_linsp, y_linsp+d_y_linsp, **plot.conf_band(i+1))
+            ## finding which value of the bare coupling corresponds to the same physical coupling
+            beta_tuned = fsolve(zeros, beta_0)
         
-        ## finding which value of the bare coupling corresponds to the same physical coupling
-        def func(x):
-            return (model(x,*opt) - r2F_L3[flag])
+            tuned_betas.append(beta_tuned)
         
-        beta0 = 2
-        beta_tuned = fsolve(func, beta0)
-        
-        tuned_betas.append(beta_tuned)
-        
-        x_tuned = np.array(tuned_betas)[i]
-        y_tuned = model(x_tuned,*opt)
-        b_y_tuned = [model(x_tuned, *opt_j) for opt_j in b_opt]
-        d_y_tuned = np.std(b_y_tuned, ddof=1)
-        plt.errorbar(x_tuned, y_tuned, d_y_tuned, **plot.data(0))
-        
-
-    #plt.axhline(y=r2F_L3[flag], color='red', linestyle='--', linewidth=2)
+            x_tuned = np.array(tuned_betas)[i-1]
+            y_tuned = apbxpcx2(x_tuned,*opt)
+            b_y_tuned = [apbxpcx2(x_tuned, *opt_j) for opt_j in b_opt]
+            d_y_tuned = np.std(b_y_tuned, ddof=1)
+            plt.errorbar(x_tuned, y_tuned, d_y_tuned, **plot.data(0))
     
-    plt.ylabel(fr'$r_1^2F(r_1/a,g)$')
     plt.xlabel(fr'$\beta=1/g^2$')
-    plt.legend()
+    plt.ylabel(fr'$r_1^2F(r_{flag+1}/a,g)$')
+    plt.legend(loc='upper left')
     plt.grid (True, linestyle = '--', linewidth = 0.25)
     plt.savefig(f"/home/negro/projects/matching/step_scaling/infvol_PBC/r2F_r{flag+1}.png", dpi=300, bbox_inches='tight')
+    plt.close()
     
     return tuned_betas
 
-def colim(tuned_betas, beta_0, beta_lst_1, beta_lst_2, beta_lst_3, flag = 0):
-    ## different distances used
-    rL3 = [1, 5**0.5, 8**0.5]
-    rL4 = [2**0.5, 10**0.5, 18**0.5]
-    rL5 = [5**0.5, 25**0.5, 40**0.5]
-    rL7 = [8**0.5, 40**0.5, 72**0.5]
+def colim_vs_beta(beta_lst, rLi_lst, tuned_betas, flag=1):
+    def axpbpcx2(x,a,b,c):
+        return a + b*x + c*x**2
     
-    ## distances to be used at the present moment
-    ri = [rL3, rL4, rL5, rL7]
-    Nss = [3, 4, 5, 7]
-    
-    betas = [beta_lst_1, beta_lst_2, beta_lst_3]
-    
-    path =  f"/home/negro/projects/matching/step_scaling/infvol_PBC/Nt42_Ns42_b{beta_0}"
+    res, d_res = [], []
 
-    ## starting point: r2F_r1 for L3 values (r1=1, r2=sqrt(5))
-    tmp = np.load(f"{path}/analysis/r2F_{int(rL3[0]**2)}_{int(rL3[1]**2)}.npy", allow_pickle=True)
-    r2F_L3, b_r2F_L3 = tmp[0], tmp[1]
-    
-    res, b_res, d_res = [], [], []
-    
-    plt.figure(figsize=(18,12))
-    
-    y_0, b_y_0, d_y_0 = r2F_L3[flag], b_r2F_L3[flag], np.std(b_r2F_L3[flag], ddof=1)
-    
-    plt.errorbar(beta_0, y_0, d_y_0, **plot.data(0), label=fr'$N_s\times N_s$={Nss[0]}$\times${Nss[0]}')
-    
-    for i, rLi in enumerate(ri[1:]):
+    plt.figure(figsize=(18,12))  
+    for i, rLi in enumerate(rLi_lst):
         y_lst, d_y_lst, b_y_lst = [], [], []
-        for beta in betas[i]:
+        
+        for beta in beta_lst[i]:
             path =  f"/home/negro/projects/matching/step_scaling/infvol_PBC/Nt42_Ns42_b{beta}"
 
             tmp = np.load(f"{path}/analysis/r2F_{int(rLi[0]**2)}_{int(rLi[1]**2)}.npy", allow_pickle=True)
@@ -519,44 +465,57 @@ def colim(tuned_betas, beta_0, beta_lst_1, beta_lst_2, beta_lst_3, flag = 0):
             y_tmp = r2F[flag]
             b_y_tmp = b_r2F[flag]
             d_y_tmp = np.std(b_y_tmp, ddof=1)
-
-            if beta==betas[i][0]:
-                plt.errorbar(beta, y_tmp, d_y_tmp, **plot.data(i+1), label=fr'$N_s\times N_s$={Nss[i+1]}$\times${Nss[i+1]}')
-            else:
-                plt.errorbar(beta, y_tmp, d_y_tmp, **plot.data(i+1))
+            
+            label=fr'$r_2$={rLi[1]:.2f}' if beta==beta_lst[i][0] else None
+            plt.errorbar(beta, y_tmp, d_y_tmp, **plot.data(i), label=label)
 
             y_lst.append(y_tmp)
             d_y_lst.append(d_y_tmp)
             b_y_lst.append(b_y_tmp)
+        
+            if i==0 and beta==beta_lst[i][0]:
+                res.append(y_tmp)
+                d_res.append(d_y_tmp)
+
+        if i!=0:
+            x_linsp, y_linsp, d_y_linsp, opt, d_opt, b_opt, c2r, d_c2r = boot_fit(x=beta_lst[i], y=y_lst, d_y=d_y_lst, b_y=b_y_lst, model=axpbpcx2, lim_inf=0, lim_sup=len(y_lst))
             
-        def model(x,a,b):
-            return a + b*x
-        
-        x_linsp, y_linsp, d_y_linsp, opt, d_opt, b_opt, c2r, d_c2r = boot_fit(x=betas[i], y=y_lst, d_y=d_y_lst, b_y=b_y_lst, model=model, lim_inf=0, lim_sup=len(y_lst))
-        
-        plt.plot(x_linsp, y_linsp, **plot.fit(i+1), label = fr"$\chi^2/\nu$={c2r:.2f}")
-        plt.fill_between(x_linsp, y_linsp-d_y_linsp, y_linsp+d_y_linsp, **plot.conf_band(i+1))
-        
-        x_tuned = np.array(tuned_betas)[i]
-        y_tuned = np.array(model(x_tuned,*opt))
-        b_y_tuned = [model(x_tuned, *opt_j) for opt_j in b_opt]
-        d_y_tuned = np.std(b_y_tuned, ddof=1)
-        plt.errorbar(x_tuned, y_tuned, d_y_tuned, **plot.data(0))
-        
-        res.append(y_tuned)
-        b_res.append(np.array(b_y_tuned))
-        d_res.append(d_y_tuned)
+            plt.plot(x_linsp, y_linsp, **plot.fit(i), label = fr"$\chi^2/\nu$={c2r:.2f}")
+            plt.fill_between(x_linsp, y_linsp-d_y_linsp, y_linsp+d_y_linsp, **plot.conf_band(i))
+            
+            x_tuned = tuned_betas[i-1]
+            y_tuned = axpbpcx2(x_tuned,*opt)
+            b_y_tuned = [axpbpcx2(x_tuned, *opt_j) for opt_j in b_opt]
+            d_y_tuned = np.std(b_y_tuned, ddof=1)
+            plt.errorbar(x_tuned, y_tuned, d_y_tuned, **plot.data(0))
+            
+            res.append(np.float64(y_tuned[0]))
+            d_res.append(np.float64(d_y_tuned))
     
-    plt.ylabel(fr'$r_2^2F(r_2/a,g)$')
+    plt.ylabel(fr'$r_2^2F(r_{flag+1}/a,g)$')
     plt.xlabel(fr'$\beta=1/g^2$')
-    plt.legend()
+    plt.legend(loc='lower left')
     plt.grid (True, linestyle = '--', linewidth = 0.25)
     plt.savefig(f"/home/negro/projects/matching/step_scaling/infvol_PBC/r2F_r{flag+1}.png", dpi=300, bbox_inches='tight')
+    plt.close()
     
-    return y_0, b_y_0, res, b_res
-       
-def pathstuff():
-    path_glob = f"/home/negro/projects/matching/step_scaling/infvol_PBC/Nt42_Ns42_b2"
+    return res, d_res
+     
+def colim_vs_r2latt(r_latt, res, d_res):
+    x_fit = np.array(1/r_latt**2)
+    
+    plt.figure(figsize=(18,12))
+    
+    plt.errorbar(x_fit, res, d_res, **plot.data(0))
+    
+    plt.grid (True, linestyle = '--', linewidth = 0.25)
+    plt.savefig(f"/home/negro/projects/matching/step_scaling/infvol_PBC/continuum_limit.png", dpi=300, bbox_inches='tight')
+    plt.close()
+ 
+## main functions      
+ 
+def firstage():
+    path_glob = f"/home/negro/projects/matching/step_scaling/infvol_PBC/Nt42_Ns42_b5"
     
     if not os.path.isdir(f"{path_glob}/analysis/"):
         os.makedirs(f"{path_glob}/analysis/") 
@@ -565,81 +524,55 @@ def pathstuff():
         concatenate.concatenate(f"{path_glob}/data", 500, f"{path_glob}/analysis/")
     
     ## planar
-    ws_max_plot = 10
-    wt_min_fit = [12] * ws_max_plot
-    wt_max_fit = [18] * ws_max_plot
+    wt_max_plot = 21
+    ws_max = 9
+    ws_max_plot = 9
+    wt_min_fit = [16] * ws_max_plot
+    wt_max_fit = [21] * ws_max_plot
     
-    planarpot(path_glob, wt_min_fit, wt_max_fit)
+    planarpot(path_glob, ws_max, ws_max_plot, wt_max_plot, wt_min_fit, wt_max_fit)
     
     rL3 = [1, 5**0.5, 8**0.5]
     rL4 = [2**0.5, 10**0.5, 18**0.5]
     rL5 = [5**0.5, 25**0.5, 40**0.5]
     rL7 = [8**0.5, 40**0.5, 72**0.5]
     
-    rL = [rL4, rL5, rL7]
+    rL = [rL7]
         
-    #for rLi in rL:
-        #plotfit_potential(path_glob, fit='true', ri=rLi, start=0, end=10)
-        #compute_r2F(path_glob, ri=rLi)
+    for rLi in rL:
+         plotfit_potential(path_glob, fit='true', ri=rLi, start=1, end=9)
+         compute_r2F(path_glob, ri=rLi)
     
-def nonpathstuff():
+def secondstage():
     ## list of betas available
-    beta_0 = 2  
-    beta_lst_1 = [2.25, 2.26, 2.27, 2.28, 2.29, 2.3]
-    beta_lst_2 = [2.75, 2.8, 2.85, 2.9]
-    beta_lst_3 = [2.9, 2.925, 2.95, 2.975, 3, 3.025, 3.05]
+    beta_0 = [2]  
+    beta_lst_1 = [2.25, 2.26, 2.27, 2.28, 2.29, 2.3, 2.5]
+    beta_lst_2 = [2.75, 2.8, 2.85, 2.9, 2.95, 3]
+    beta_lst_3 = [3.25, 4, 5]
     
-    tuned_betas = tune_r2F(beta_0, beta_lst_1, beta_lst_2, beta_lst_3, flag=0, spreadout = 1)
-    y_0, b_y_0, res, b_res = colim(tuned_betas, beta_0, beta_lst_1, beta_lst_2, beta_lst_3, flag = 1)
+    beta_lst = [beta_0, beta_lst_1, beta_lst_2, beta_lst_3]
     
-    def model(x,a , b,c ):
-        return a + b*x + c*x**2
+    ## different distances used
+    rL3 = [1, 5**0.5, 8**0.5]
+    rL4 = [2**0.5, 10**0.5, 18**0.5]
+    rL5 = [5**0.5, 25**0.5, 40**0.5]
+    rL7 = [8**0.5, 40**0.5, 72**0.5]
+    
+    ## distances to be used at the present moment
+    rLi_lst = [rL3, rL4, rL5, rL7]
+    
+    ## flag=0 -> r1, flag=1 -> r2 
+    tuned_betas = tune_r2F(beta_lst, rLi_lst, flag=0)
+    
+    res, b_res = colim_vs_beta(beta_lst, rLi_lst, tuned_betas, flag=1)
     
     r_latt = np.array([5**0.5, 10**0.5, 25**0.5, 40**0.5])
-    
-    x_fit = np.array(1/r_latt**2)
-    y_fit = [0] * len(x_fit)
-    d_y_fit = [0] * len(x_fit)
-    b_y_fit = []
-
-    y_fit[0] = float(y_0)
-    
-    for j, res_j in enumerate(res):
-        y_fit[j+1] = float(res_j)
-        
-    d_y_fit[0] = float(np.std(b_y_0, ddof=1))
-    for j, b_res_j in enumerate(b_res):
-        d_y_fit[j+1] = float(np.std(b_res_j, ddof=1))
-        
-
-    plt.figure(figsize=(18,12))
-    
-    plt.errorbar(x_fit, y_fit, d_y_fit, **plot.data(0))
-    
-    print(x_fit, y_fit, d_y_fit)
-    
-    def a2pa4(x, a, b, c):
-        return a + b*x + c*x**2
-    
-    opt, cov = curve_fit(a2pa4, x_fit, y_fit, sigma=d_y_fit, absolute_sigma=True)
-    
-    x_lsp = np.linspace(x_fit[0], x_fit[-1], 100)
-    y_lsp = a2pa4(x_lsp, *opt)
-    
-    plt.plot(x_lsp, y_lsp, **plot.fit(0))
-        
-    plt.grid (True, linestyle = '--', linewidth = 0.25)
-    
-    plt.xlim(0, 0.25)
-    plt.ylabel(r'$r_2^2F(r_2,g)$')
-    plt.xlabel(r'$1/r^2_{latt}$')
-    
-    plt.savefig(f"/home/negro/projects/matching/step_scaling/infvol_PBC/r2F_r2_colim.png", dpi=300, bbox_inches='tight')
-
+    colim_vs_r2latt(r_latt, res, b_res)
+     
 if __name__ == "__main__":
 
-    pathstuff()
+    #firstage()
     
-    #nonpathstuff()
+    secondstage()
 
     
