@@ -108,7 +108,7 @@ def get_avgmag4(path, i, beta, blocksize):
     np.save(f"{path}/analysis/avgmag4/avgmag4_b{beta:.6f}", np.array([beta, ris, err, boot_ris], dtype=object))
  
 def get_energy2(path, i, beta, blocksize):
-    os.makedirs(f'{path}/analysis/energy', exist_ok=True)
+    os.makedirs(f'{path}/analysis/energy2', exist_ok=True)
     data = readfile(path, filename = f'data_{i}')
     energy = data[:,2]
     
