@@ -171,7 +171,7 @@ if __name__ == "__main__":
                 get_avgmag4(path, i, beta, bs)
                 
         ## average square energy
-        if not os.path.isdir(f"{path}/analysis/energy/"):
+        if not os.path.isdir(f"{path}/analysis/energy2/"):
             for i, beta in enumerate(beta_lst):                
                 get_energy2(path, i, beta, bs)
     
