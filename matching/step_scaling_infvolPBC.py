@@ -439,7 +439,7 @@ def tune_r2F(beta_lst, rLi_lst, flag=0):
     
     plt.xlabel(fr'$\beta=1/g^2$')
     plt.ylabel(fr'$r_1^2F(r_{flag+1}/a,g)$')
-    plt.legend(loc='upper left')
+    plt.legend()
     plt.grid (True, linestyle = '--', linewidth = 0.25)
     plt.savefig(f"/home/negro/projects/matching/step_scaling/infvol_PBC/r2F_r{flag+1}.png", dpi=300, bbox_inches='tight')
     plt.close()
@@ -508,6 +508,8 @@ def colim_vs_r2latt(r_latt, res, d_res):
     
     plt.errorbar(x_fit, res, d_res, **plot.data(0))
     
+    plt.xlabel(r'$1/r^2_{latt}$')
+    plt.ylabel(r'$\bar{g}(r)$')
     plt.grid (True, linestyle = '--', linewidth = 0.25)
     plt.savefig(f"/home/negro/projects/matching/step_scaling/infvol_PBC/continuum_limit.png", dpi=300, bbox_inches='tight')
     plt.close()
@@ -515,7 +517,7 @@ def colim_vs_r2latt(r_latt, res, d_res):
 ## main functions      
  
 def firstage():
-    path_glob = f"/home/negro/projects/matching/step_scaling/infvol_PBC/Nt42_Ns42_b5"
+    path_glob = f"/home/negro/projects/matching/step_scaling/infvol_PBC/Nt42_Ns42_b3.25"
     
     if not os.path.isdir(f"{path_glob}/analysis/"):
         os.makedirs(f"{path_glob}/analysis/") 
@@ -525,8 +527,8 @@ def firstage():
     
     ## planar
     wt_max_plot = 21
-    ws_max = 9
-    ws_max_plot = 9
+    ws_max = 7
+    ws_max_plot = 7
     wt_min_fit = [16] * ws_max_plot
     wt_max_fit = [21] * ws_max_plot
     
@@ -537,18 +539,18 @@ def firstage():
     rL5 = [5**0.5, 25**0.5, 40**0.5]
     rL7 = [8**0.5, 40**0.5, 72**0.5]
     
-    rL = [rL7]
+    rL = [rL5]
         
     for rLi in rL:
-         plotfit_potential(path_glob, fit='true', ri=rLi, start=1, end=9)
+         plotfit_potential(path_glob, fit='true', ri=rLi, start=1, end=7)
          compute_r2F(path_glob, ri=rLi)
     
 def secondstage():
     ## list of betas available
     beta_0 = [2]  
-    beta_lst_1 = [2.25, 2.26, 2.27, 2.28, 2.29, 2.3, 2.5]
-    beta_lst_2 = [2.75, 2.8, 2.85, 2.9, 2.95, 3]
-    beta_lst_3 = [3.25, 4, 5]
+    beta_lst_1 = [2.25, 2.26, 2.27, 2.28, 2.29, 2.3, 2.5] ## analyze 2.35 2.4 2.45
+    beta_lst_2 = [2.8, 2.85, 2.9, 2.95, 3, 3.05, 3.1, 3.15, 3.2]
+    beta_lst_3 = [3.25, 4, 5] # 3.5 3.75
     
     beta_lst = [beta_0, beta_lst_1, beta_lst_2, beta_lst_3]
     
