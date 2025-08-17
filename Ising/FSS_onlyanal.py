@@ -315,14 +315,14 @@ def plot_collapse_binder(path, Ns_lst, beta_lst):
 if __name__ == "__main__":
     ## useful tip: simulate staggered ranges/differently dense ranges of beta
     ## otherwise the plots are hard to read
-    Ns_lst = [20, 40, 60, 80, 100, 120, 140, 160]
+    Ns_lst = [20]
     
     beta_lst = [0.42 + j*0.00085 for j in range(48)]
 
     path = f'/home/negro/projects/misc/Ising'
     
     #plot_avgmag(path, Ns_lst, beta_lst)
-    #plot_avgabsmag(path, Ns_lst, beta_lst)
+    plot_avgabsmag(path, Ns_lst, beta_lst)
     #plot_energy(path, Ns_lst, beta_lst)
     
     #plot_chi(path, Ns_lst, beta_lst)
@@ -332,6 +332,6 @@ if __name__ == "__main__":
     
     #plot_collapse_avgabsmag(path, Ns_lst, beta_lst)
     
-    plot_collapse_chi(path, Ns_lst, beta_lst)
-    plot_collapse_chip(path, Ns_lst, beta_lst)
-    plot_collapse_binder(path, Ns_lst, beta_lst)
+    #plot_collapse_chi(path, Ns_lst, beta_lst)
+    #plot_collapse_chip(path, Ns_lst, beta_lst)
+    #plot_collapse_binder(path, Ns_lst, beta_lst)

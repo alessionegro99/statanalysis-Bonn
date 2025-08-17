@@ -93,7 +93,7 @@ if __name__ == "__main__":
         np.save(f"{path}/analysis/mag", np.array([beta_lst, ris_lst, err_lst, boot_lst], dtype=object))
     
     plt.figure()
-    for i, L in enumerate([20, 40]):
+    for i, L in enumerate([20]):
         path = f'/home/negro/projects/misc/Ising/L{L}'
         data = np.load(f"{path}/analysis/mag.npy", allow_pickle=True)
         x = data[0]

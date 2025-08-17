@@ -61,9 +61,6 @@ def bootstrap_for_primary(func, vec_in, block, samples, seed=None, returnboot=Fa
   else:
     return ris, err
 
-
-
-
 def bootstrap_for_secondary(func2, block, samples, show_progressbar, *args, seed=None, returnsamples=0):
   """Bootstrap for secondary observables.
   
@@ -125,7 +122,7 @@ def bootstrap_for_secondary(func2, block, samples, show_progressbar, *args, seed
   else:
     return ris, err
 
-def blocksize_analysis_primary(vec_in, samples, block_vec, savefig=0, path=None, extra=''):      
+def blocksize_analysis_primary(vec_in, samples, block_vec):      
   """Blocksize analysis for primary observables.
   
   Given a numpy vector "vec_in", 
@@ -142,9 +139,7 @@ def blocksize_analysis_primary(vec_in, samples, block_vec, savefig=0, path=None,
   
   block_range = range(block_vec[0], block_vec[1], block_vec[2])
   
-  for block in block_range:
-    pb.progress_bar(block, block_vec[1])
-    
+  for block in block_range:    
     numblocks=int(len(vec_in)/block)
     end =  block * numblocks
 
@@ -160,30 +155,13 @@ def blocksize_analysis_primary(vec_in, samples, block_vec, savefig=0, path=None,
     for sample in range(samples):  
       resampling = np.random.randint(0,numblocks,size=numblocks)
       # compute the standard error on each of the bootstrap samples
-      tmp.append(np.std(block_sum_data[resampling])/numblocks**0.5)
+      tmp.append(np.std(block_sum_data[resampling], ddof=1)/numblocks**0.5)
     
     # the error on the standard error is the standard deviation on the
     # bootstrap samples of the standard error
-    d_err.append(np.std(tmp))
+    d_err.append(np.std(tmp, ddof=1))
     
-  if savefig==0:
-    return block_range, err, d_err
-  
-  elif savefig==1:   
-    plt.figure(figsize=(18,12))
-    plt.errorbar(block_range, err, yerr=d_err,
-                  fmt='o-', capsize=3, 
-                  markersize=2, linewidth=0.375,
-                  color=plot.color_dict[1])
-      
-    plt.xlabel(r'$K$')
-    plt.ylabel(r'$\overline{\sigma}_{\overline{F^{(K)}}}$', rotation=0)
-    plt.title("Standard error as a function of the blocksize.")
-
-    plt.grid(True, which='both', linestyle='--', linewidth=0.25)
-  
-    plt.savefig(f'{path}/blocksize_analysis_{extra}.png',  dpi=300, bbox_inches='tight')
-    plt.close()
+  return block_range, err, d_err
 
   
 #***************************

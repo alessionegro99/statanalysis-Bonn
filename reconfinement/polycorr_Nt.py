@@ -332,9 +332,10 @@ def format_results():
     
 if __name__ == "__main__":
     
-    for Ns in [16]:
-        path = f"/home/negro/projects/reconfinement/polycorr_Nt/b27.4745_h0.005/corr_48_{Ns}_96_0.005"
-        
+    for Ns in [9]:
+        path = f"/home/negro/projects/reconfinement/polycorr_Nt/b23.3805_h0.007/corr_24_{Ns}_96_0.007"
+                
+                
         #concatenate.concatenate(f"{path}/data", 2000, f"{path}/analysis")
         
         #thermalization(path)
@@ -342,8 +343,8 @@ if __name__ == "__main__":
         
         #polycorr(path)
 
-        #fit_polycorr(path)
+        fit_polycorr(path)
         
         #boot_fit_polycorr(path)
         
-    format_results()
+    #format_results()
