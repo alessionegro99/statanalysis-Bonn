@@ -29,7 +29,10 @@ beta = float(sys.argv[5])
 if len(sys.argv) > 6:
     blocksize = int(sys.argv[6])
     
-input_dir = f'{base_dir}/Ns{Ns}/Nt{Nt}_Ns{Ns}_b{beta:.0g}'
+def fmt(x):
+    return str(int(x)) if x.is_integer() else str(x)
+    
+input_dir = f'{base_dir}/Ns{Ns}/Nt{Nt}_Ns{Ns}_b{fmt(beta)}'
 
 wt_max  = Nt
 
