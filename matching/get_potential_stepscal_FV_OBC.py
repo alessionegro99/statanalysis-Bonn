@@ -13,7 +13,7 @@ import concatenate
 import bootstrap as boot
 
 ## usage
-# python3 script.py therm_drop Nt Ns beta (blocksize)
+# python3 script.py base_dir therm_drop Nt Ns beta (blocksize)
 
 def readfile(path, *, file_name='Wloop.dat'):
     output = np.loadtxt(f'{path}/analysis/{file_name}', skiprows=1)
@@ -21,12 +21,15 @@ def readfile(path, *, file_name='Wloop.dat'):
 
     return np.column_stack(columns)
 
-therm_drop = int(sys.argv[1])
-Nt = int(sys.argv[2])
-Ns = int(sys.argv[3])
-beta = float(sys.argv[4])
-if len(sys.argv) > 5:
-    blocksize = int(sys.argv[5])
+base_dir = sys.argv[1]
+therm_drop = int(sys.argv[2])
+Nt = int(sys.argv[3])
+Ns = int(sys.argv[4])
+beta = float(sys.argv[5])
+if len(sys.argv) > 6:
+    blocksize = int(sys.argv[6])
+    
+input_dir = f'{base_dir}/Ns{Ns}/Nt{Nt}_Ns{Ns}_b{beta:.0f}'
 
 wt_max  = Nt
 
@@ -92,9 +95,7 @@ def get_potential (path, loop, *, seed=8220, samples=500, blocksize=200):
         V_bs.append(V_bs_ws)
         
     np.save(f'{path}/analysis/{loop_type}_potential_wt', np.array([wsplot, V, d_V, V_bs], dtype=object))
-    
-input_dir = f'/home/negro/projects/matching/step_scaling/finite_volume_scheme_OBC/Ns{Ns}/Nt{Nt}_Ns{Ns}_b{beta:.0f}'
- 
+     
 if not os.path.isdir(f"{input_dir}/analysis/"):
     os.makedirs(f"{input_dir}/analysis/") 
 
