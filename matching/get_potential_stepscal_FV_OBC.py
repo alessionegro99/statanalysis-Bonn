@@ -102,9 +102,8 @@ def get_potential (path, loop, *, seed=8220, samples=500, blocksize=200):
 if not os.path.isdir(f"{input_dir}/analysis/"):
     os.makedirs(f"{input_dir}/analysis/") 
 
-if not os.path.isfile(f"{input_dir}/analysis/Wloop.dat"):
-    concatenate.concatenate(f"{input_dir}/data", therm_drop, f"{input_dir}/analysis/")
-    
-if not os.path.isfile(f"{input_dir}/analysis/potential_wt.npy"):
-    for loop in loops.values():
-        get_potential(input_dir, loop)
+concatenate.concatenate(f"{input_dir}/data", therm_drop, f"{input_dir}/analysis/")
+
+for loop in loops.values():
+    print(loop.loop_type)
+    get_potential(input_dir, loop, blocksize=blocksize)
