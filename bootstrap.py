@@ -3,12 +3,9 @@
 import sys
 
 import numpy as np
-import matplotlib.pyplot as plt
-
 
 import blocksum as bs
 import progressbar as pb
-import plot
 
 __all__ = ["bootstrap_for_primary", "bootstrap_for_secondary", "blocksize_analysis_primary"]
 
