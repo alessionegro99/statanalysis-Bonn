@@ -32,7 +32,7 @@ if len(sys.argv) > 6:
 def fmt(x):
     return str(int(x)) if x.is_integer() else str(x)
     
-input_dir = f'{base_dir}/Ns{Ns}/Nt{Nt}_Ns{Ns}_b{fmt(beta)}'
+input_dir = f'{base_dir}/Nt{Nt}_Ns{Ns}_b{fmt(beta)}'
 
 wt_max  = Nt
 
