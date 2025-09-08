@@ -104,18 +104,18 @@ if not os.path.isdir(f"{input_dir}/analysis/"):
 
 concatenate.concatenate(f"{input_dir}/data", therm_drop, f"{input_dir}/analysis/")
 
-## truncating to 1e6 lines
-folder_path = f'{input_dir}/analysis'
-for filename in os.listdir(folder_path):
-    file_path = os.path.join(folder_path, filename)
+# ## truncating to 1e6 lines
+# folder_path = f'{input_dir}/analysis'
+# for filename in os.listdir(folder_path):
+#     file_path = os.path.join(folder_path, filename)
     
-    with open(file_path, "r") as f:
-        lines = f.readlines()
+#     with open(file_path, "r") as f:
+#         lines = f.readlines()
         
-    lines = lines[:1000001]
+#     lines = lines[:1000001]
     
-    with open(file_path, "w") as f:
-        f.writelines(lines)
+#     with open(file_path, "w") as f:
+#         f.writelines(lines)
 
 for loop in loops.values():
     print(loop.loop_type)
