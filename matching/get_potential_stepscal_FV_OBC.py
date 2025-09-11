@@ -34,7 +34,7 @@ def fmt(x):
     
 input_dir = f'{base_dir}/Nt{Nt}_Ns{Ns}_b{fmt(beta)}'
 
-wt_max  = Nt
+wt_max = Nt
 
 ws_vec = [i for i in range (1, Ns)]
 ws_max = len(ws_vec)
