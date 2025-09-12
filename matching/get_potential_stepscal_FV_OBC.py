@@ -105,12 +105,11 @@ if use_nonplanar==1:
         'non_planar': WilsonLoop('sWloop', wt_max, sws_max, sws_vec, np.sqrt(sws_vec))
     }
     
-else:
+elif use_nonplanar==0:
     loops = {
-        'planar': WilsonLoop('Wloop', wt_max, ws_max, ws_vec, ws_vec),
+        'planar': WilsonLoop('Wloop', wt_max, ws_max, ws_vec, ws_vec)
     }
     
-   
 if not os.path.isdir(f"{input_dir}/analysis/"):
     os.makedirs(f"{input_dir}/analysis/") 
 
