@@ -30,7 +30,7 @@ def get_potential (path, loop, *, seed=8220, samples=500, blocksize=200):
     '''
     
     def id(x):
-        return 
+        return x
     
     loop_type = loop.loop_type
     wt_max = loop.wt_max
@@ -51,12 +51,9 @@ def get_potential (path, loop, *, seed=8220, samples=500, blocksize=200):
                 
         for wt in range(wt_max):
             W = data[:, wt + wt_max*ws]
-            print(wt)
-            print(ws)
-            print(W)
-
-            args = [id, W]
             
+            args = [id, W]
+
             def potential(x):
                 eps=1e-10
                 return -np.log(np.clip(x, eps, None))/(wt+1)
