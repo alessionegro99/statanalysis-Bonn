@@ -40,6 +40,7 @@ ws_vec = [i for i in range (1, Ns)]
 ws_max = len(ws_vec)
 
 sws_vec = [i**2 + j**2 for i in range(1,Ns) for j in range(1,i+1)]
+sws_vec = [2]
 sws_max = len(sws_vec)
 
 class WilsonLoop:
