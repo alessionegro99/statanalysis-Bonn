@@ -51,6 +51,9 @@ def get_potential (path, loop, *, seed=8220, samples=500, blocksize=200):
                 
         for wt in range(wt_max):
             W = data[:, wt + wt_max*ws]
+            print(wt)
+            print(ws)
+            print(W)
 
             args = [id, W]
             
