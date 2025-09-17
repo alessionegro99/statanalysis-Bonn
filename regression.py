@@ -10,8 +10,7 @@ from scipy.optimize import curve_fit
 import progressbar as pb
 import plot
 
-__all__ = ["fit_with_yerr", "fit_with_xyerr"]
-
+__all__ = ["_residuals_yerr", "fit_with_yerr", "fit_yerr_uncorrelated", "_residuals_xyerr", "fit_with_xyerr", "chi2_corr", "format_uncertainty", "format_uncertainty_vec", "fit_with_scipy", "boot_fit"]
 
 def _residuals_yerr(params, x, y, dy, func):
    """
@@ -21,7 +20,6 @@ def _residuals_yerr(params, x, y, dy, func):
 
    ris=(y-func(x, params) )/dy
    return ris
-
 
 def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
    stop_param=1.0e-15, plot_fit=1, plot_fit_total_range=0, plot_band=1, \
@@ -186,6 +184,7 @@ def fit_with_yerr(x, y, dy, xmin, xmax, func, params, samples, \
    return ris, err, chi2, dof, pvalue, boot_sample
 
  ## to do: modify and use this only for the correlated fits
+
 def fit_yerr_uncorrelated(func, x, y, d_y, bsamples, \
                           maskfit, maskplot, rangeplot, plotabstract=0, \
                             kwargs1=None, kwargs2=None, kwargs3=None, kwargs4=None, label=None):
@@ -241,7 +240,6 @@ def fit_yerr_uncorrelated(func, x, y, d_y, bsamples, \
   
   return opt, cov, chi2red, boot_opt, boot_cov
   
-
 def _residuals_xyerr(extended_params, x, dx, y, dy, true_param_length, func):
    """
    Return the vector of residuals (normalized with the error)
@@ -254,7 +252,6 @@ def _residuals_xyerr(extended_params, x, dx, y, dy, true_param_length, func):
    risy=(y-func(extended_params[true_param_length:], extended_params[:true_param_length]) )/dy
    risx=(x-extended_params[true_param_length:])/dx
    return np.append(risy, risx)
-
 
 def fit_with_xyerr(x, dx, y, dy, xmin, xmax, func, params, samples, \
    stop_param=1.0e-15, plot_fit=1, plot_band=1, plot_residuals=1, \
@@ -373,7 +370,6 @@ def fit_with_xyerr(x, dx, y, dy, xmin, xmax, func, params, samples, \
 
    return ris, err, chi2, dof, pvalue, boot_sample
  
-
 def chi2_corr(x, y, model, C_ij, *params):
     """
     Compute chi-squared for a model with correlated residuals.
@@ -394,7 +390,6 @@ def chi2_corr(x, y, model, C_ij, *params):
     chi2 = np.sum(residuals * (np.linalg.inv(C_ij) @ residuals))
 
     return chi2
-
 
 def format_uncertainty(value, dvalue, significance=2):
     """Creates a string of a value and its error in paranthesis notation, e.g., 13.02(45)"""
@@ -437,6 +432,37 @@ def fit_with_scipy(x, y, d_y, model, parameters, mask=None):
   chi2red = chi2/(len(x) - len(opt))
     
   return opt, cov, x_fit, y_fit, boot_band, chi2red
+
+def boot_fit(x, y, d_y, b_y, model, lim_inf, lim_sup, extension=None, p0 = [1,1,1]):
+    x_fit, y_fit, d_y_fit, b_y_fit = x[lim_inf:lim_sup], y[lim_inf:lim_sup], d_y[lim_inf:lim_sup], b_y[lim_inf:lim_sup]
+    opt, cov = curve_fit(model, x_fit, y_fit, sigma=d_y_fit, absolute_sigma=True, maxfev=100000)
+    
+    n_boot = len(b_y[0])
+
+    x_linsp = np.linspace(x_fit[0], x_fit[-1], 100)
+    if extension:
+        x_linsp=np.linspace(extension[0], extension[1], extension[2])
+        
+    y_linsp = model(x_linsp, *opt)
+        
+    b_opt = []
+    b_y_linsp = []
+    
+    for j in range(n_boot):
+        y_fit_j = [b_y_fit[i][j] for i in range(len(b_y_fit))]
+        
+        opt_j, cov_j = curve_fit(model, x_fit, y_fit_j, sigma=d_y_fit, absolute_sigma=True, p0 = p0, maxfev=100000)
+        b_opt.append(opt_j)
+        
+        y_linsp_j = model(x_linsp, *opt_j)
+        b_y_linsp.append(y_linsp_j)
+
+    d_opt = np.std(b_opt, axis=0, ddof=1)
+    
+    c2r = chi2_corr(x_fit, y_fit, model, np.diag(np.array(d_y_fit)**2), *opt)
+    
+    d_y_linsp = np.std(b_y_linsp, axis=0, ddof=1)
+    return x_linsp, y_linsp, d_y_linsp, opt, d_opt, b_opt, c2r  
 
 #***************************
 # unit testing
