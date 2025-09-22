@@ -434,8 +434,8 @@ def fit_with_scipy(x, y, d_y, model, parameters, mask=None):
   return opt, cov, x_fit, y_fit, boot_band, chi2red
 
 def boot_fit(x, y, d_y, b_y, model, lim_inf, lim_sup, extension=None, p0 = [1,1,1]):
-    x_fit, y_fit, d_y_fit, b_y_fit = x[lim_inf:lim_sup], y[lim_inf:lim_sup], d_y[lim_inf:lim_sup], b_y[lim_inf:lim_sup]
-    opt, cov = curve_fit(model, x_fit, y_fit, sigma=d_y_fit, absolute_sigma=True, maxfev=100000)
+    x_fit, y_fit, d_y_fit, b_y_fit = x[lim_inf:lim_sup+1], y[lim_inf:lim_sup+1], d_y[lim_inf:lim_sup+1], b_y[lim_inf:lim_sup+1]
+    opt, cov = curve_fit(model, x_fit, y_fit, sigma=d_y_fit, absolute_sigma=True, p0=p0, maxfev=100000)
     
     n_boot = len(b_y[0])
 
@@ -450,7 +450,7 @@ def boot_fit(x, y, d_y, b_y, model, lim_inf, lim_sup, extension=None, p0 = [1,1,
     
     for j in range(n_boot):
         y_fit_j = [b_y_fit[i][j] for i in range(len(b_y_fit))]
-        
+
         opt_j, cov_j = curve_fit(model, x_fit, y_fit_j, sigma=d_y_fit, absolute_sigma=True, p0 = p0, maxfev=100000)
         b_opt.append(opt_j)
         
