@@ -12,7 +12,7 @@ __all__ = ["bootstrap_for_primary", "bootstrap_for_secondary", "blocksize_analys
 #***************************
 #library functions
 
-def bootstrap_for_primary(func, vec_in, block, samples, seed=None, returnboot=False):
+def bootstrap_for_primary(func, vec_in, block, samples, seed=None, returnsamples=False):
   """Bootstrap for primary observables.
 
   Given a numpy vector "vec_in", compute 
@@ -52,7 +52,7 @@ def bootstrap_for_primary(func, vec_in, block, samples, seed=None, returnboot=Fa
   ris=np.mean(risboot)
   err=np.std(risboot, ddof=1)
   
-  if returnboot==True:
+  if returnsamples==True:
     return ris, err, risboot
   
   else:

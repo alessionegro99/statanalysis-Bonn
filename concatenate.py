@@ -16,7 +16,6 @@ def concatenate(indir, therm, outdir, use_line0_as_header=1):
   If use_line0_as_header the first line of each group of file 
   is copied irrespective of the therm value
   """
-  
   complete_list=glob.glob("%s/*.dat" % indir)
 
   # cut the final part of the name
@@ -47,7 +46,7 @@ def concatenate(indir, therm, outdir, use_line0_as_header=1):
             i=i+1
         inf.close()
 
-        for k in range(1, len(list_to_merge) ):
+        for k in range(1, len(list_to_merge)):
           i=0
           with open(list_to_merge[k], 'r') as inf:
             for line in inf:
