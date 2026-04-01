@@ -1,233 +1,171 @@
 #!/usr/bin/env python3
 
 import sys
+from typing import Callable
 
 import numpy as np
 
-import blocksum as bs
-import progressbar as pb
 
-__all__ = ["bootstrap_for_primary", "bootstrap_for_secondary", "blocksize_analysis_primary"]
+def blocksum(vec_in: np.ndarray, block: int) -> np.ndarray:
+    """Return block sums of a 1D array."""
+    vec = np.asarray(vec_in)
+    n_blocks = len(vec) // block
+    trimmed = vec[: n_blocks * block]
+    return trimmed.reshape(n_blocks, block).sum(axis=1)
 
-#***************************
-#library functions
 
 def bootstrap_for_primary(func, vec_in, block, samples, seed=None, returnsamples=False):
-  """Bootstrap for primary observables.
+    """Bootstrap for primary observables.
 
-  Given a numpy vector "vec_in", compute 
-  <func(vec_in)> 
-  using blocksize "block" for blocking
-  and "samples" resamplings.
-  """
+    Given a numpy vector "vec_in", compute
+    <func(vec_in)>
+    using blocksize "block" for blocking
+    and "samples" resamplings.
+    """
 
-  if not isinstance(block, int):
-    print("ERROR: blocksize has to be an integer!")
-    sys.exit(1)
+    if not isinstance(block, int):
+        print("ERROR: blocksize has to be an integer!")
+        sys.exit(1)
 
-  if block<1:
-    print("ERROR: blocksize has to be positive!")
-    sys.exit(1)
+    if block < 1:
+        print("ERROR: blocksize has to be positive!")
+        sys.exit(1)
 
-  numblocks=int(len(vec_in)/block)
-  end =  block * numblocks
+    numblocks = int(len(vec_in) / block)
+    end = block * numblocks
 
-  # cut vec_in to have a number of columns multiple of "block" and apply "func" 
-  data=func(vec_in[:end])   
+    # cut vec_in to have a number of columns multiple of "block" and apply "func"
+    data = func(vec_in[:end])
 
-  # get the average on the blocks
-  block_sum_data=bs.blocksum(data, block)/np.float64(block)
+    # get the average on the blocks
+    block_sum_data = blocksum(data, block) / np.float64(block)
 
-  # generate bootstrap samples
-  aux=len(block_sum_data)
-  
-  if seed==None:
-    bootsample=np.random.choice(block_sum_data, size=(samples, aux), replace=True)
-  else:
-    np.random.seed(seed)
-    bootsample = np.random.choice(block_sum_data, size=(samples, aux), replace=True)
-  # sum up the samples
-  risboot=np.sum(bootsample, axis=1)/len(block_sum_data)
+    # generate bootstrap samples
+    aux = len(block_sum_data)
 
-  ris=np.mean(risboot)
-  err=np.std(risboot, ddof=1)
-  
-  if returnsamples==True:
-    return ris, err, risboot
-  
-  else:
+    if seed is None:
+        bootsample = np.random.choice(block_sum_data, size=(samples, aux), replace=True)
+    else:
+        np.random.seed(seed)
+        bootsample = np.random.choice(block_sum_data, size=(samples, aux), replace=True)
+    # sum up the samples
+    risboot = np.sum(bootsample, axis=1) / len(block_sum_data)
+
+    ris = np.mean(risboot)
+    err = np.std(risboot, ddof=1)
+
+    if returnsamples:
+        return ris, err, risboot
+
     return ris, err
 
-def bootstrap_for_secondary(func2, block, samples, show_progressbar, *args, seed=None, returnsamples=0):
-  """Bootstrap for secondary observables.
-  
-  Every element of *arg is a list of two element of the form
-  args[i]=[func_i, vec_i]
-  and the final result is 
-  func2(<func_0(vec_0)>, ..,<func_n(vec_n)>) 
-  with blocksize "block" for blocking
-  and "samples" resampling
-  show_progressbar: if =1 show the progressbar
-  seed: if != 0 the rng is seeded with seed
-  """
-  if not isinstance(block, int):
-    print("ERROR: blocksize has to be an integer!")
-    sys.exit(1)
 
-  if block<1:
-    print("ERROR: blocksize has to be positive!")
-    sys.exit(1)
+def bootstrap_for_secondary(
+    func2: Callable[[list[float]], float],
+    block: int,
+    samples: int,
+    *observables: tuple[Callable[[np.ndarray], np.ndarray], np.ndarray],
+    seed: int | None = None,
+    returnsamples: bool = False,
+):
+    """
+    Bootstrap for secondary observables.
 
-  secondary_samples=np.empty(samples, dtype=np.float64)
+    Each element of `observables` must be a pair `(func_i, vec_i)`.
+    For each bootstrap replica, the function computes
 
-  if seed!=None:
-    np.random.seed(seed)
-  
-  for sample in range(samples):
-    if show_progressbar==1:
-      pb.progress_bar(sample, samples)
+        func2([ <func_0(vec_0)>, ..., <func_n(vec_n)> ])
 
-    primary_samples=[]
+    where each primary observable is first blocked with block size `block`,
+    then resampled at the block level.
+    """
+    if not isinstance(block, int):
+        raise TypeError("block must be an integer")
+    if block < 1:
+        raise ValueError("block must be positive")
+    if samples < 1:
+        raise ValueError("samples must be positive")
+    if not observables:
+        raise ValueError("at least one observable must be provided")
 
-    numblocks=int(len(args[0][1])/block)
-    end =  block * numblocks  
-    
-    resampling = np.random.randint(0,numblocks,size=numblocks)
+    rng = np.random.default_rng(seed)
+    secondary_samples = np.empty(samples, dtype=np.float64)
 
-    for arg in args:
-      func_l, vec_l = arg
+    n = len(observables[0][1])
+    numblocks = n // block
+    if numblocks < 2:
+        raise ValueError("Not enough data for this block size")
 
-      # cut vec_in to have a number of columns multiple of "block" and apply "func" 
-      data=func_l(vec_l[:end])  
+    end = block * numblocks
 
-      #block
-      block_sum_data=bs.blocksum(data, block)/np.float64(block)
+    for sample in range(samples):
+        resampling = rng.integers(0, numblocks, size=numblocks)
+        primary_samples: list[float] = []
 
-      #sample average
-      tmp = np.average([block_sum_data[i] for i in resampling])  
+        for func_i, vec_i in observables:
+            data = func_i(np.asarray(vec_i[:end]))
+            blocked = blocksum(data, block) / float(block)
+            primary_samples.append(np.mean(blocked[resampling]))
 
-      primary_samples.append(tmp)
+        secondary_samples[sample] = func2(primary_samples)
 
-    aux=func2(primary_samples)
-    secondary_samples[sample]=aux
+    mean = np.mean(secondary_samples)
+    err = np.std(secondary_samples, ddof=1)
 
-  ris=np.mean(secondary_samples)
-  err=np.std(secondary_samples, ddof=1)
+    if returnsamples:
+        return mean, err, secondary_samples
+    return mean, err
 
-  if returnsamples==1:
-    return ris, err, secondary_samples
-  else:
-    return ris, err
 
-def blocksize_analysis_primary(vec_in, samples, block_vec):      
-  """Blocksize analysis for primary observables.
-  
-  Given a numpy vector "vec_in", 
-  plot the standard deviation on the mean
-  of "vec_in" as a function of the blocksize.
-  Starting from "blocksize_min" to
-  "blocksize_max" with steps of size "blocksize_step".
-  Uses "samples" bootstrap samples to compute the error.
-  "block_vec" is a vector 
-  [blocksize_min,blocksize_max,blocksize_step]
-  """
-  err = []
-  d_err = []
-  
-  block_range = range(block_vec[0], block_vec[1], block_vec[2])
-  
-  for block in block_range:    
-    numblocks=int(len(vec_in)/block)
-    end =  block * numblocks
-
-    data=vec_in[:end]
-
-    block_sum_data=bs.blocksum(data, block)/np.float64(block)
-    
-    # estimator for the standard error for blocksize=block
-    err.append(np.std(block_sum_data)/numblocks**0.5)
-  
-    tmp = []
-    
-    for sample in range(samples):  
-      resampling = np.random.randint(0,numblocks,size=numblocks)
-      # compute the standard error on each of the bootstrap samples
-      tmp.append(np.std(block_sum_data[resampling], ddof=1)/numblocks**0.5)
-    
-    # the error on the standard error is the standard deviation on the
-    # bootstrap samples of the standard error
-    d_err.append(np.std(tmp, ddof=1))
-    
-  return block_range, err, d_err
-
-  
-#***************************
+# ***************************
 # unit testing
 
-if __name__=="__main__":
-  
-  print("**********************")
-  print("UNIT TESTING")
-  print()
+if __name__ == "__main__":
+    print("**********************")
+    print("UNIT TESTING")
+    print()
 
-  def id(x):
-    return x
+    def id(x):
+        return x
 
-  def square(x):
-    return x*x
+    def square(x):
+        return x * x
 
-  def susc(x):
-    return x[0]-x[1]*x[1]
+    def susc(x):
+        return x[0] - x[1] * x[1]
 
-  size=5000
-  samples=500
-  
-  # gaussian independent data 
-  mu=1.0
-  sigma=0.2
-  rng = np.random.default_rng(123)
-  test_noauto=rng.normal(mu, sigma, size)
-  
-  # NO AUTOCORRELATION
+    size = 5000
+    samples = 500
 
-  # test for primary
-  print("Test for primary observables without autocorrelation")
-  print("result must be compatible with %f" % mu)
+    # gaussian independent data
+    mu = 1.0
+    sigma = 0.2
+    rng = np.random.default_rng(123)
+    test_noauto = rng.normal(mu, sigma, size)
 
-  ris, err = bootstrap_for_primary(id, test_noauto, 1, samples, seed=None)
+    # NO AUTOCORRELATION
 
-  print("average = %f" % ris)
-  print("    err = %f" % err)
-  print("    std = %f" % (np.std(test_noauto)/len(test_noauto)**0.5))
-  print()
+    # test for primary
+    print("Test for primary observables without autocorrelation")
+    print("result must be compatible with %f" % mu)
 
-  # test for secondary
-  print("Test for secondary observables without autocorrelation")
-  print("result must be compatible with %f" % (sigma*sigma))
+    ris, err = bootstrap_for_primary(id, test_noauto, 1, samples, seed=None)
 
-  list0=[square, test_noauto]
-  list1=[id, test_noauto]
-  ris, err = bootstrap_for_secondary(susc, 1, samples, 1, list0, list1, seed=None)
+    print("average = %f" % ris)
+    print("    err = %f" % err)
+    print("    std = %f" % (np.std(test_noauto) / len(test_noauto) ** 0.5))
+    print()
 
-  print("average = %f" % ris)
-  print("    err = %f" % err)
-  print()
-  
-  # # Parameters
-  # n = 10000           # Length of the vector
-  # rho = 0.1         # Autocorrelation coefficient (close to 1 for heavy autocorrelation)
-  # sigma = 1          # Standard deviation of the white noise
+    # test for secondary
+    print("Test for secondary observables without autocorrelation")
+    print("result must be compatible with %f" % (sigma * sigma))
 
-  # # Generate white noise
-  # np.random.seed(0)
-  # noise = np.random.normal(0, sigma, n)
+    list0 = [square, test_noauto]
+    list1 = [id, test_noauto]
+    ris, err = bootstrap_for_secondary(susc, 1, samples, 1, list0, list1, seed=None)
 
-  # # Initialize the vector
-  # x = np.zeros(n)
-  # for t in range(1, n):
-  #     x[t] = rho * x[t-1] + noise[t]
-    
-  # blocksize_analysis_primary(x, 200, [1, 500, 10])
+    print("average = %f" % ris)
+    print("    err = %f" % err)
+    print()
 
-  print("**********************")
-
+    print("**********************")
